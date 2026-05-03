@@ -1,9 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useTransition, useState } from 'react'
 import { useUser } from '@/hooks/useUser'
-import { createClient } from '@/lib/supabase/client'
+import { logout } from '@/app/actions/auth'
 
 const ROLE_LABEL: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -14,26 +13,23 @@ const ROLE_LABEL: Record<string, string> = {
 
 export default function Header() {
   const { profile } = useUser()
-  const router = useRouter()
-  const [signingOut, setSigningOut] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const [signOutError, setSignOutError] = useState<string | null>(null)
 
-  async function handleSignOut() {
-    setSigningOut(true)
+  function handleSignOut() {
     setSignOutError(null)
-
-    const supabase = createClient()
-    const { error } = await supabase.auth.signOut()
-
-    if (error) {
-      console.error('Erreur lors de la déconnexion :', error.message)
-      setSignOutError('Erreur lors de la déconnexion. Veuillez réessayer.')
-      setSigningOut(false)
-      return
-    }
-
-    router.refresh()
-    router.push('/login')
+    startTransition(async () => {
+      try {
+        await logout()
+      } catch (err) {
+        // redirect() throws internally — re-throw so Next.js handles the navigation
+        if (err instanceof Error && (err as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) {
+          throw err
+        }
+        console.error('Erreur lors de la déconnexion :', err)
+        setSignOutError('Erreur lors de la déconnexion. Veuillez réessayer.')
+      }
+    })
   }
 
   return (
@@ -66,7 +62,7 @@ export default function Header() {
 
         <button
           onClick={handleSignOut}
-          disabled={signingOut}
+          disabled={isPending}
           className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 hover:border-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg
@@ -83,7 +79,7 @@ export default function Header() {
               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
             />
           </svg>
-          {signingOut ? 'Déconnexion...' : 'Déconnexion'}
+          {isPending ? 'Déconnexion...' : 'Déconnexion'}
         </button>
       </div>
     </header>
