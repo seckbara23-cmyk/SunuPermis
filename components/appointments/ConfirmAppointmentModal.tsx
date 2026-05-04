@@ -90,7 +90,7 @@ export default function ConfirmAppointmentModal({
               required
               value={scheduledAt}
               onChange={(e) => setScheduledAt(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
             />
           </div>
 

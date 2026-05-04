@@ -99,7 +99,7 @@ export default function AddInstructorModal({ role, drivingSchools, onClose }: Pr
                 name="driving_school_id"
                 required
                 defaultValue=""
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent bg-white"
               >
                 <option value="" disabled>Sélectionner une auto-école</option>
                 {drivingSchools.map((school) => (
@@ -122,7 +122,7 @@ export default function AddInstructorModal({ role, drivingSchools, onClose }: Pr
               type="text"
               required
               placeholder="Moussa Ndiaye"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
             />
           </div>
 
@@ -135,7 +135,7 @@ export default function AddInstructorModal({ role, drivingSchools, onClose }: Pr
               name="phone"
               type="tel"
               placeholder="77 000 00 00"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
             />
           </div>
 
@@ -148,7 +148,7 @@ export default function AddInstructorModal({ role, drivingSchools, onClose }: Pr
               name="email"
               type="email"
               placeholder="moussa@exemple.com"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
             />
           </div>
 
@@ -160,7 +160,7 @@ export default function AddInstructorModal({ role, drivingSchools, onClose }: Pr
               id="status"
               name="status"
               defaultValue="active"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent bg-white"
             >
               {INSTRUCTOR_STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -181,7 +181,7 @@ export default function AddInstructorModal({ role, drivingSchools, onClose }: Pr
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 rounded-lg bg-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-navy/90 focus:outline-none focus:ring-2 focus:ring-navy focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Enregistrement...' : 'Ajouter'}
             </button>

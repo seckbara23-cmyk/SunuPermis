@@ -178,7 +178,7 @@ export default function AddStudentModal({ role, drivingSchools, onClose }: Props
                 name="driving_school_id"
                 required
                 defaultValue=""
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent bg-white"
               >
                 <option value="" disabled>Sélectionner une auto-école</option>
                 {drivingSchools.map((school) => (
@@ -199,7 +199,7 @@ export default function AddStudentModal({ role, drivingSchools, onClose }: Props
               type="text"
               required
               placeholder="Amadou Diallo"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
             />
           </div>
 
@@ -212,7 +212,7 @@ export default function AddStudentModal({ role, drivingSchools, onClose }: Props
               name="phone"
               type="tel"
               placeholder="77 000 00 00"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
             />
           </div>
 
@@ -226,7 +226,7 @@ export default function AddStudentModal({ role, drivingSchools, onClose }: Props
               type="email"
               required
               placeholder="amadou@exemple.com"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
             />
           </div>
 
@@ -241,7 +241,7 @@ export default function AddStudentModal({ role, drivingSchools, onClose }: Props
               type="text"
               minLength={6}
               placeholder="Laisser vide pour auto-générer"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent font-mono"
             />
           </div>
 
@@ -254,7 +254,7 @@ export default function AddStudentModal({ role, drivingSchools, onClose }: Props
               name="license_category"
               required
               defaultValue="B"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent bg-white"
             >
               {LICENSE_CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>Catégorie {cat}</option>

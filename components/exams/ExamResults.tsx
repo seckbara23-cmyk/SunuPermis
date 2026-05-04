@@ -67,7 +67,7 @@ export default function ExamResults({ result, onRetry }: Props) {
         {/* Actions */}
         <button
           onClick={onRetry}
-          className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+          className="mt-6 w-full rounded-lg bg-navy px-4 py-3 text-sm font-semibold text-white hover:bg-navy/90 transition-colors"
         >
           Refaire un examen
         </button>

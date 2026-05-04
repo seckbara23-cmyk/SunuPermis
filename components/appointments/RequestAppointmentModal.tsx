@@ -95,7 +95,7 @@ export default function RequestAppointmentModal({ eligibleStudents, onClose }: P
                 name="student_id"
                 required
                 defaultValue=""
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent bg-white"
               >
                 <option value="" disabled>Sélectionner un élève</option>
                 {eligibleStudents.map((s) => (

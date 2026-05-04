@@ -101,7 +101,7 @@ export default function AddLessonModal({ students, instructors, onClose }: Props
               name="student_id"
               required
               defaultValue=""
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent bg-white"
             >
               <option value="" disabled>Sélectionner un élève</option>
               {students.map((s) => (
@@ -119,7 +119,7 @@ export default function AddLessonModal({ students, instructors, onClose }: Props
               name="instructor_id"
               required
               defaultValue=""
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent bg-white"
             >
               <option value="" disabled>Sélectionner un moniteur</option>
               {instructors.map((i) => (
@@ -138,7 +138,7 @@ export default function AddLessonModal({ students, instructors, onClose }: Props
                 name="start_time"
                 type="datetime-local"
                 required
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
               />
             </div>
             <div>
@@ -150,7 +150,7 @@ export default function AddLessonModal({ students, instructors, onClose }: Props
                 name="end_time"
                 type="datetime-local"
                 required
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
               />
             </div>
           </div>
@@ -164,7 +164,7 @@ export default function AddLessonModal({ students, instructors, onClose }: Props
               name="notes"
               rows={3}
               placeholder="Observations ou instructions..."
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent resize-none"
             />
           </div>
 
@@ -179,7 +179,7 @@ export default function AddLessonModal({ students, instructors, onClose }: Props
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 rounded-lg bg-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-navy/90 focus:outline-none focus:ring-2 focus:ring-navy focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Enregistrement...' : 'Planifier'}
             </button>

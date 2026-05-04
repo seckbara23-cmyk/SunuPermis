@@ -132,7 +132,7 @@ export default function StudentDetail({ student, canUpdate }: Props) {
                     id="training_status"
                     value={selected}
                     onChange={(e) => setSelected(e.target.value as TrainingStatus)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
                   >
                     {TRAINING_STATUS_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -145,7 +145,7 @@ export default function StudentDetail({ student, canUpdate }: Props) {
                 <button
                   onClick={handleUpdate}
                   disabled={!isDirty || loading}
-                  className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="w-full rounded-lg bg-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-navy/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {loading ? 'Mise à jour...' : 'Mettre à jour'}
                 </button>

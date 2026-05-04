@@ -33,7 +33,7 @@ export default function StudentsClient({ students, canAdd, role, drivingSchools 
         {canAdd && (
           <button
             onClick={() => setModalOpen(true)}
-            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+            className="rounded-lg bg-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-navy/90 transition-colors"
           >
             + Ajouter un élève
           </button>

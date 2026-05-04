@@ -106,7 +106,7 @@ export default function ExamSession({ questions, onComplete }: Props) {
           {!isLast ? (
             <button
               onClick={goNext}
-              className="px-5 py-2.5 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-5 py-2.5 rounded-lg bg-navy text-sm font-semibold text-white hover:bg-navy/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Suivant →
             </button>
@@ -133,7 +133,7 @@ export default function ExamSession({ questions, onComplete }: Props) {
                 title={`Question ${i + 1}`}
                 className={`w-8 h-8 rounded-full text-xs font-semibold transition-colors ${
                   isActive
-                    ? 'bg-blue-600 text-white ring-2 ring-blue-300'
+                    ? 'bg-navy text-white ring-2 ring-blue-300'
                     : isAnswered
                     ? 'bg-green-100 text-green-700 hover:bg-green-200'
                     : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
