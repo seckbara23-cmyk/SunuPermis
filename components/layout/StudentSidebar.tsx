@@ -4,26 +4,25 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const navLinks = [
-  { href: '/dashboard',          label: 'Tableau de bord' },
-  { href: '/dashboard/students', label: 'Élèves'          },
-  { href: '/dashboard/exams',    label: 'Examens'         },
+  { href: '/student',       label: 'Mon espace'    },
+  { href: '/student/exams', label: 'Examens blancs' },
 ]
 
-export default function Sidebar() {
+export default function StudentSidebar() {
   const pathname = usePathname()
 
   return (
     <aside className="w-60 shrink-0 bg-white border-r border-gray-200 flex flex-col">
       <div className="px-6 py-5 border-b border-gray-100 shrink-0">
         <span className="text-xl font-bold text-navy">SunuPermis</span>
-        <p className="text-xs text-gray-400 mt-0.5">Auto-école</p>
+        <p className="text-xs text-gray-400 mt-0.5">Espace élève</p>
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navLinks.map(({ href, label }) => {
           const isActive =
-            href === '/dashboard'
-              ? pathname === '/dashboard'
+            href === '/student'
+              ? pathname === '/student'
               : pathname === href || pathname.startsWith(href + '/')
 
           return (

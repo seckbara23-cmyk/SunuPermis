@@ -58,6 +58,7 @@ export default function AddStudentModal({ role, drivingSchools, onClose }: Props
       email,
       password: submittedPassword || undefined,
       license_category: data.get('license_category') as string,
+      blood_type: (data.get('blood_type') as string) || undefined,
       driving_school_id: data.get('driving_school_id') as string | undefined,
     })
 
@@ -258,6 +259,24 @@ export default function AddStudentModal({ role, drivingSchools, onClose }: Props
             >
               {LICENSE_CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>Catégorie {cat}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="blood_type" className="block text-sm font-medium text-gray-700 mb-1">
+              Groupe sanguin
+              <span className="ml-1 text-xs font-normal text-gray-400">(optionnel)</span>
+            </label>
+            <select
+              id="blood_type"
+              name="blood_type"
+              defaultValue=""
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent bg-white"
+            >
+              <option value="">Non renseigné</option>
+              {['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'].map((g) => (
+                <option key={g} value={g}>{g}</option>
               ))}
             </select>
           </div>

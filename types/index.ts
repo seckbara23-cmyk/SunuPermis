@@ -10,7 +10,6 @@ export interface Profile {
   created_at: string
 }
 
-// TODO: rename 'super_admin' to 'government_admin' across the codebase once the DB enum is migrated
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
 
 export interface DrivingSchool {
@@ -29,7 +28,7 @@ export interface DrivingSchool {
 }
 
 export type TrainingStatus = 'registered' | 'in_training' | 'ready_for_exam' | 'completed' | 'inactive'
-export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'overdue'
+export type PaymentStatus  = 'pending' | 'partial' | 'paid' | 'overdue'
 
 export interface Student {
   id: string
@@ -43,8 +42,15 @@ export interface Student {
   license_category: string
   training_status: TrainingStatus
   payment_status: PaymentStatus
+  blood_type: string | null
+  medical_document_url: string | null
   enrollment_date: string
   created_at: string
+  updated_at: string
+}
+
+export interface StudentWithSchool extends Student {
+  driving_schools: { name: string }
 }
 
 export type InstructorStatus = 'active' | 'inactive'
@@ -134,7 +140,6 @@ export interface ExamQuestion {
   created_at: string
 }
 
-// Sent to the client — correct_answer and explanation are stripped server-side
 export interface ExamQuestionForDisplay {
   id: string
   question_text: string
@@ -159,4 +164,58 @@ export interface ExamSubmitResult {
   totalQuestions: number
   correctCount: number
   passed: boolean
+}
+
+// ── Exam sessions ──────────────────────────────────────────────
+
+export type ExamSessionStatus = 'open' | 'closed'
+
+export interface ExamSession {
+  id: string
+  exam_date: string
+  exam_center: string
+  available_slots: number
+  status: ExamSessionStatus
+  created_by: string | null
+  created_at: string
+}
+
+// ── Exam bookings ──────────────────────────────────────────────
+
+export type ExamBookingStatus = 'pending' | 'approved' | 'rejected'
+export type ExamResult        = 'passed' | 'failed'
+
+export interface ExamBooking {
+  id: string
+  student_id: string
+  driving_school_id: string
+  exam_session_id: string
+  status: ExamBookingStatus
+  result: ExamResult | null
+  approved_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ExamBookingWithDetails extends ExamBooking {
+  students:       { full_name: string; email: string; phone: string | null }
+  driving_schools: { name: string }
+  exam_sessions:  { exam_date: string; exam_center: string; available_slots: number }
+}
+
+// ── Notifications ──────────────────────────────────────────────
+
+export type NotificationChannel = 'email' | 'sms' | 'log'
+export type NotificationStatus  = 'pending' | 'sent' | 'failed'
+
+export interface Notification {
+  id: string
+  recipient_user_id: string | null
+  recipient_email: string | null
+  recipient_phone: string | null
+  channel: NotificationChannel
+  type: string
+  status: NotificationStatus
+  message: string
+  created_at: string
 }

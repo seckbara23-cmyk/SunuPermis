@@ -3,28 +3,41 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn } from '@/services/auth'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LoginForm() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [error, setError]       = useState<string | null>(null)
+  const [loading, setLoading]   = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
 
-    const { error } = await signIn(email, password)
+    const { data, error: signInError } = await signIn(email, password)
 
-    if (error) {
+    if (signInError || !data?.user) {
       setError('Email ou mot de passe incorrect.')
       setLoading(false)
       return
     }
 
-    router.push('/dashboard')
+    // Fetch role to redirect to the correct area
+    const supabase = createClient()
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', data.user.id)
+      .single()
+
+    const role = profile?.role
+    if (role === 'super_admin')  router.push('/admin')
+    else if (role === 'school_admin') router.push('/dashboard')
+    else router.push('/student')
+
     router.refresh()
   }
 
