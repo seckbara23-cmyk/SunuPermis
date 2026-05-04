@@ -61,7 +61,7 @@ export default function RequestAppointmentModal({ eligibleStudents, onClose }: P
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Demander un rendez-vous</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Uniquement les élèves prêts pour l'examen</p>
+            <p className="text-xs text-gray-400 mt-0.5">Uniquement les élèves prêts pour l&apos;examen</p>
           </div>
           <button
             onClick={onClose}
@@ -82,7 +82,7 @@ export default function RequestAppointmentModal({ eligibleStudents, onClose }: P
           {eligibleStudents.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-4">
               Aucun élève éligible. Les élèves doivent avoir le statut{' '}
-              <span className="font-medium">Prêt pour l'examen</span>.
+              <span className="font-medium">Prêt pour l&apos;examen</span>.
             </p>
           ) : (
             <div>

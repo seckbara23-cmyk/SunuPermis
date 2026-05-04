@@ -100,7 +100,7 @@ export default function AddStudentModal({ role, drivingSchools, onClose }: Props
             </div>
             <div>
               <h2 className="text-base font-semibold text-gray-900">Compte créé avec succès</h2>
-              <p className="text-sm text-gray-500">Transmettez ces identifiants à l'élève</p>
+              <p className="text-sm text-gray-500">Transmettez ces identifiants à l&apos;élève</p>
             </div>
           </div>
 
@@ -120,7 +120,7 @@ export default function AddStudentModal({ role, drivingSchools, onClose }: Props
             </div>
 
             <p className="text-xs text-gray-400 text-center">
-              L'élève devra utiliser ces informations pour se connecter sur SunuPermis.
+              L&apos;élève devra utiliser ces informations pour se connecter sur SunuPermis.
             </p>
 
             <div className="flex gap-3 pt-1">

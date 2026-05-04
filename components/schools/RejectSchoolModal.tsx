@@ -57,7 +57,7 @@ export default function RejectSchoolModal({ schoolId, schoolName, onClose, onSuc
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Rejeter l'auto-école</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Rejeter l&apos;auto-école</h2>
             <p className="text-sm text-gray-500 mt-0.5">{schoolName}</p>
           </div>
           <button
