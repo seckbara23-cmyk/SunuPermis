@@ -27,20 +27,26 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login')
-  const isDashboardRoute = request.nextUrl.pathname.startsWith('/dashboard')
+  const { pathname } = request.nextUrl
+  const isLoginRoute = pathname.startsWith('/login')
+  const isDashboardRoute = pathname.startsWith('/dashboard')
+  const isRootRoute = pathname === '/'
 
+  // Unauthenticated users cannot access the dashboard.
   if (!user && isDashboardRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  if (user && isAuthRoute) {
+  // Authenticated users should not sit on /login or / — send them to the app.
+  if (user && (isLoginRoute || isRootRoute)) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 
+  // Prevent Vercel's edge from caching auth-sensitive responses.
+  supabaseResponse.headers.set('Cache-Control', 'no-store')
   return supabaseResponse
 }
