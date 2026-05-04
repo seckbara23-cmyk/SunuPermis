@@ -1,8 +1,8 @@
 'use client'
 
-import { useTransition, useState } from 'react'
+import { useFormStatus } from 'react-dom'
 import { useUser } from '@/hooks/useUser'
-import { logout } from '@/app/actions/auth'
+import { logoutAction } from '@/app/actions/auth'
 
 const ROLE_LABEL: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -11,38 +11,43 @@ const ROLE_LABEL: Record<string, string> = {
   student: 'Élève',
 }
 
+function LogoutButton() {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 hover:border-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-4 h-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+        />
+      </svg>
+      {pending ? 'Déconnexion...' : 'Déconnexion'}
+    </button>
+  )
+}
+
 export default function Header() {
   const { profile } = useUser()
-  const [isPending, startTransition] = useTransition()
-  const [signOutError, setSignOutError] = useState<string | null>(null)
-
-  function handleSignOut() {
-    setSignOutError(null)
-    startTransition(async () => {
-      try {
-        await logout()
-      } catch (err) {
-        // redirect() throws internally — re-throw so Next.js handles the navigation
-        if (err instanceof Error && (err as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) {
-          throw err
-        }
-        console.error('Erreur lors de la déconnexion :', err)
-        setSignOutError('Erreur lors de la déconnexion. Veuillez réessayer.')
-      }
-    })
-  }
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0">
       {/* Left — reserved for future breadcrumb */}
       <div />
 
-      {/* Right — user info + logout (logout always visible) */}
+      {/* Right — user info + logout */}
       <div className="flex items-center gap-4">
-        {signOutError && (
-          <p className="text-xs text-red-600">{signOutError}</p>
-        )}
-
         {profile && (
           <>
             <div className="flex items-center gap-3">
@@ -60,27 +65,9 @@ export default function Header() {
           </>
         )}
 
-        <button
-          onClick={handleSignOut}
-          disabled={isPending}
-          className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 hover:border-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-            />
-          </svg>
-          {isPending ? 'Déconnexion...' : 'Déconnexion'}
-        </button>
+        <form action={logoutAction}>
+          <LogoutButton />
+        </form>
       </div>
     </header>
   )
