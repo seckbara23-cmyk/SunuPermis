@@ -19,6 +19,23 @@ export default async function AdminStudentsPage() {
 
   const students = (data ?? []) as StudentWithSchool[]
 
+  // Batch-generate signed URLs for all students who have a document
+  const docPaths = students
+    .map((s) => s.medical_document_url)
+    .filter((p): p is string => !!p)
+
+  const signedUrlMap: Record<string, string> = {}
+  if (docPaths.length > 0) {
+    const { data: signedUrls } = await supabase.storage
+      .from('medical-documents')
+      .createSignedUrls(docPaths, 3600)
+    if (signedUrls) {
+      for (const item of signedUrls) {
+        if (item.path && item.signedUrl) signedUrlMap[item.path] = item.signedUrl
+      }
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -64,15 +81,17 @@ export default async function AdminStudentsPage() {
                         )}
                       </td>
                       <td className="px-5 py-4">
-                        {s.medical_document_url ? (
+                        {s.medical_document_url && signedUrlMap[s.medical_document_url] ? (
                           <a
-                            href={s.medical_document_url}
+                            href={signedUrlMap[s.medical_document_url]}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs font-medium text-navy hover:underline"
                           >
                             Voir le document
                           </a>
+                        ) : s.medical_document_url ? (
+                          <span className="text-xs text-gray-400">Uploadé</span>
                         ) : (
                           <span className="text-xs text-gray-400">Non uploadé</span>
                         )}

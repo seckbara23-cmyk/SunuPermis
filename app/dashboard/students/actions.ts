@@ -133,7 +133,7 @@ export async function updateTrainingStatus(
 
 export async function updateStudentInfo(
   studentId: string,
-  data: { blood_type?: string; medical_document_url?: string }
+  data: { blood_type?: string }
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -154,4 +154,99 @@ export async function updateStudentInfo(
   revalidatePath('/dashboard/students')
   revalidatePath(`/dashboard/students/${studentId}`)
   return {}
+}
+
+export async function uploadMedicalDocument(
+  formData: FormData
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non authentifié.' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, driving_school_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile) return { error: 'Profil introuvable.' }
+  if (profile.role !== 'school_admin' && profile.role !== 'super_admin') return { error: 'Accès refusé.' }
+
+  const studentId = formData.get('student_id') as string
+  const file = formData.get('file') as File
+
+  if (!file || file.size === 0) return { error: 'Aucun fichier sélectionné.' }
+  if (file.size > 10 * 1024 * 1024) return { error: 'Le fichier ne doit pas dépasser 10 Mo.' }
+
+  if (profile.role === 'school_admin') {
+    const { data: student } = await supabase
+      .from('students')
+      .select('driving_school_id')
+      .eq('id', studentId)
+      .single()
+    if (!student || student.driving_school_id !== profile.driving_school_id) {
+      return { error: 'Accès refusé.' }
+    }
+  }
+
+  // Fixed path per student — upsert overwrites previous document regardless of format
+  const storagePath = `${studentId}/medical-document`
+
+  const { error: uploadError } = await supabase.storage
+    .from('medical-documents')
+    .upload(storagePath, file, { upsert: true, contentType: file.type })
+
+  if (uploadError) return { error: uploadError.message }
+
+  const { error: updateError } = await supabase
+    .from('students')
+    .update({ medical_document_url: storagePath, updated_at: new Date().toISOString() })
+    .eq('id', studentId)
+
+  if (updateError) return { error: updateError.message }
+
+  revalidatePath('/dashboard/students')
+  revalidatePath(`/dashboard/students/${studentId}`)
+  return {}
+}
+
+export async function getSignedDocumentUrl(
+  studentId: string
+): Promise<{ error?: string; url?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non authentifié.' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, driving_school_id, id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile) return { error: 'Accès refusé.' }
+
+  const { data: student } = await supabase
+    .from('students')
+    .select('medical_document_url, driving_school_id, profile_id')
+    .eq('id', studentId)
+    .single()
+
+  if (!student?.medical_document_url) return { error: 'Aucun document trouvé.' }
+
+  if (profile.role === 'school_admin' && student.driving_school_id !== profile.driving_school_id) {
+    return { error: 'Accès refusé.' }
+  }
+  if (profile.role === 'student' && student.profile_id !== profile.id) {
+    return { error: 'Accès refusé.' }
+  }
+  if (!['super_admin', 'school_admin', 'student'].includes(profile.role)) {
+    return { error: 'Accès refusé.' }
+  }
+
+  const { data, error } = await supabase.storage
+    .from('medical-documents')
+    .createSignedUrl(student.medical_document_url, 3600)
+
+  if (error || !data) return { error: error?.message ?? 'Impossible de générer le lien.' }
+  return { url: data.signedUrl }
 }

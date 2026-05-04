@@ -64,6 +64,14 @@ export default async function StudentDashboard() {
     )
   }
 
+  let medicalDocSignedUrl: string | null = null
+  if (student.medical_document_url) {
+    const { data: signedData } = await supabase.storage
+      .from('medical-documents')
+      .createSignedUrl(student.medical_document_url, 3600)
+    medicalDocSignedUrl = signedData?.signedUrl ?? null
+  }
+
   const [{ data: bookingRaw }, { data: pastExams }] = await Promise.all([
     supabase
       .from('exam_bookings')
@@ -114,9 +122,9 @@ export default async function StudentDashboard() {
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Document médical</p>
           <div className="mt-2">
-            {student.medical_document_url ? (
+            {medicalDocSignedUrl ? (
               <a
-                href={student.medical_document_url}
+                href={medicalDocSignedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm font-semibold text-navy hover:underline"
