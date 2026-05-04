@@ -38,7 +38,7 @@ export default function Header() {
 
         {/* Plain HTML POST — browser delivers Set-Cookie from the 303 response
             before following the redirect, guaranteeing cookies are cleared. */}
-        <form method="POST" action="/api/auth/logout">
+        <form method="POST" action="/auth/logout">
           <button
             type="submit"
             className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 hover:border-red-300 transition-colors"
