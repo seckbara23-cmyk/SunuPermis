@@ -23,7 +23,7 @@ export default async function AppointmentsPage() {
 
   // ── super_admin → government appointments dashboard ────────
   if (role === 'super_admin') {
-    redirect('/dashboard/appointments-admin')
+    redirect('/admin/reservations')
   }
 
   // ── Student view ──────────────────────────────────────────

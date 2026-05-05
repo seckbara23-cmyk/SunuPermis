@@ -105,3 +105,31 @@ export async function notifyBookingRejected(params: {
   await sendNotification({ recipientEmail: params.studentEmail, channel: 'email', type: 'booking_rejected', message: msg })
   await sendNotification({ recipientEmail: params.schoolEmail,  channel: 'email', type: 'booking_rejected', message: `Réservation rejetée pour la session du ${dateLabel}.` })
 }
+
+export async function notifyAppointmentConfirmed(params: {
+  studentEmail:  string
+  studentPhone?: string | null
+  studentName:   string
+  schoolName:    string
+  scheduledAt:   string
+}) {
+  const dateLabel = new Date(params.scheduledAt).toLocaleString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+  const msg = `Bonjour ${params.studentName}, votre rendez-vous d'examen a été validé pour le ${dateLabel}.`
+
+  await sendNotification({ recipientEmail: params.studentEmail, channel: 'email', type: 'appointment_confirmed', message: msg })
+  if (params.studentPhone) {
+    await sendNotification({ recipientPhone: params.studentPhone, channel: 'sms', type: 'appointment_confirmed', message: msg })
+  }
+}
+
+export async function notifyAppointmentRejected(params: {
+  studentEmail:    string
+  studentName:     string
+  rejectionReason: string
+}) {
+  const msg = `Bonjour ${params.studentName}, votre demande de rendez-vous d'examen a été rejetée. Motif : ${params.rejectionReason}. Contactez votre auto-école pour plus d'informations.`
+  await sendNotification({ recipientEmail: params.studentEmail, channel: 'email', type: 'appointment_rejected', message: msg })
+}

@@ -4,6 +4,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { notifyAppointmentConfirmed, notifyAppointmentRejected } from '@/services/notifications'
 
 function revalidateBoth() {
   revalidatePath('/dashboard/appointments')
@@ -112,6 +113,27 @@ export async function confirmAppointment(
   if (error) return { error: error.message }
 
   revalidateBoth()
+
+  // Best-effort notification — errors are non-fatal
+  try {
+    const { data: appt } = await supabase
+      .from('appointments')
+      .select('scheduled_at, students(full_name, email, phone)')
+      .eq('id', appointmentId)
+      .single()
+
+    if (appt?.students) {
+      const s = appt.students as unknown as { full_name: string; email: string; phone: string | null }
+      await notifyAppointmentConfirmed({
+        studentEmail: s.email,
+        studentPhone: s.phone,
+        studentName:  s.full_name,
+        schoolName:   '',
+        scheduledAt:  appt.scheduled_at ?? scheduledAt,
+      })
+    }
+  } catch { /* non-fatal */ }
+
   return {}
 }
 
@@ -139,6 +161,25 @@ export async function rejectAppointment(
   if (error) return { error: error.message }
 
   revalidateBoth()
+
+  // Best-effort notification — errors are non-fatal
+  try {
+    const { data: appt } = await supabase
+      .from('appointments')
+      .select('students(full_name, email)')
+      .eq('id', appointmentId)
+      .single()
+
+    if (appt?.students) {
+      const s = appt.students as unknown as { full_name: string; email: string }
+      await notifyAppointmentRejected({
+        studentEmail:    s.email,
+        studentName:     s.full_name,
+        rejectionReason: reason.trim(),
+      })
+    }
+  } catch { /* non-fatal */ }
+
   return {}
 }
 

@@ -7,6 +7,7 @@ const navLinks = [
   { href: '/admin',               label: 'Tableau de bord'    },
   { href: '/admin/auto-ecoles',   label: 'Auto-écoles'        },
   { href: '/admin/students',      label: 'Élèves'             },
+  { href: '/admin/reservations',  label: 'Rendez-vous'        },
   { href: '/admin/exam-sessions', label: "Sessions d'examen"  },
   { href: '/admin/exam-bookings', label: 'Réservations'       },
   { href: '/admin/results',       label: 'Résultats'          },
