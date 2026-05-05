@@ -98,6 +98,12 @@ export interface Appointment {
   rejection_reason: string | null
   confirmed_by: string | null
   confirmed_at: string | null
+  // Lifecycle fields added in migration 007
+  requested_at: string | null
+  approved_at: string | null
+  approved_by: string | null
+  rejected_at: string | null
+  rejected_by: string | null
   updated_at: string
   created_at: string
 }

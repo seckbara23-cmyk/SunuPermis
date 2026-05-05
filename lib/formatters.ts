@@ -58,10 +58,10 @@ export const LESSON_STATUS_OPTIONS = (
 ).map(([value, { label }]) => ({ value, label }))
 
 export const APPOINTMENT_STATUS_CONFIG: Record<AppointmentStatus, StatusConfig> = {
-  pending:   { label: 'En attente', className: 'bg-amber-100 text-amber-700' },
-  confirmed: { label: 'Confirmée',  className: 'bg-green-100 text-green-700' },
-  rejected:  { label: 'Rejetée',    className: 'bg-red-100 text-red-700' },
-  cancelled: { label: 'Annulée',    className: 'bg-gray-100 text-gray-600' },
+  pending:   { label: 'En attente de validation', className: 'bg-amber-100 text-amber-700' },
+  confirmed: { label: 'Rendez-vous validé',       className: 'bg-green-100 text-green-700' },
+  rejected:  { label: 'Rendez-vous rejeté',       className: 'bg-red-100 text-red-700' },
+  cancelled: { label: 'Annulé',                   className: 'bg-gray-100 text-gray-500' },
 }
 
 export const APPROVAL_STATUS_CONFIG: Record<ApprovalStatus, StatusConfig> = {
