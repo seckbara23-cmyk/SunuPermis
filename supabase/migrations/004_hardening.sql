@@ -112,12 +112,29 @@ END $$;
 
 -- ──────────────────────────────────────────────────────────────
 -- 3. exam_questions_public — safe view for student-facing code
---    Excludes correct_answer and explanation.
---    Owned by postgres → security-definer behaviour → bypasses
---    the RLS we set above, so students CAN query this view.
+--
+-- WHY security_invoker = false (SECURITY DEFINER behaviour):
+--   The RLS policy added above grants SELECT on exam_questions
+--   only to school_admin and super_admin.  Students have NO
+--   SELECT policy on the raw table, which is intentional —
+--   we do not want them fetching correct_answer directly.
+--
+--   Setting security_invoker = true would make the view execute
+--   under the calling user's (student's) credentials.  Because
+--   the student has no SELECT policy on exam_questions, the view
+--   would return 0 rows and the mock-exam feature would break.
+--
+--   With security_invoker = false (the explicit default), the
+--   view runs as its owner (postgres/superuser), bypassing RLS
+--   on the underlying table.  The view itself is the security
+--   boundary: it projects only safe columns and never exposes
+--   correct_answer or explanation.  Server actions additionally
+--   use the service-role client for all grading logic.
 -- ──────────────────────────────────────────────────────────────
 
-CREATE OR REPLACE VIEW public.exam_questions_public AS
+CREATE OR REPLACE VIEW public.exam_questions_public
+  WITH (security_invoker = false)   -- explicit: run as view owner, bypass RLS
+AS
 SELECT
   id,
   question_text,
@@ -127,7 +144,8 @@ SELECT
   created_at
 FROM public.exam_questions;
 
--- Allow any authenticated user to SELECT from the view.
--- They cannot retrieve correct_answer because the view does not project it.
+-- Grant read access to all authenticated and anonymous users.
+-- They receive only the safe columns projected by the view;
+-- correct_answer and explanation are structurally absent.
 GRANT SELECT ON public.exam_questions_public TO authenticated;
 GRANT SELECT ON public.exam_questions_public TO anon;
