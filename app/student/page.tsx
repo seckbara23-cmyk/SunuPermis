@@ -229,7 +229,7 @@ export default async function StudentDashboard() {
       {/* Welcome card */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-[#00853F] via-[#FDEF42] to-[#E31B23]" />
-        <div className="px-6 py-5 flex items-center justify-between">
+        <div className="px-6 py-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-gray-900">{student.full_name}</h1>
             <p className="mt-0.5 text-sm text-gray-500">{schoolRaw?.name ?? 'Auto-école'}</p>

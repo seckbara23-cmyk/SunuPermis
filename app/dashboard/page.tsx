@@ -62,7 +62,7 @@ export default async function DashboardHome() {
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Prochaines sessions d&apos;examen</h2>
           <div className="space-y-2">
             {upcomingSessions.map((s, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4 flex items-center justify-between">
+              <div key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-gray-900">
                     {new Date(s.exam_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}

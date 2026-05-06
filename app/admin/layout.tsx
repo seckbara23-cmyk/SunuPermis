@@ -1,7 +1,16 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import AdminSidebar from '@/components/layout/AdminSidebar'
-import Header from '@/components/layout/Header'
+import DashboardShell from '@/components/layout/DashboardShell'
+
+const NAV_LINKS = [
+  { href: '/admin',               label: 'Tableau de bord'   },
+  { href: '/admin/auto-ecoles',   label: 'Auto-écoles'       },
+  { href: '/admin/students',      label: 'Élèves'            },
+  { href: '/admin/reservations',  label: 'Rendez-vous'       },
+  { href: '/admin/exam-sessions', label: "Sessions d'examen" },
+  { href: '/admin/exam-bookings', label: 'Réservations'      },
+  { href: '/admin/results',       label: 'Résultats'         },
+]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -17,15 +26,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (profile?.role !== 'super_admin') redirect('/login')
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
-      <div className="h-1 shrink-0 bg-gradient-to-r from-[#00853F] via-[#FDEF42] to-[#E31B23]" />
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        <AdminSidebar />
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-          <Header />
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
-        </div>
-      </div>
-    </div>
+    <DashboardShell navLinks={NAV_LINKS} subtitle="Administration" homeHref="/admin">
+      {children}
+    </DashboardShell>
   )
 }

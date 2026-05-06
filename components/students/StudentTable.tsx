@@ -21,6 +21,7 @@ export default function StudentTable({ students }: Props) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-100">
         <thead>
           <tr className="bg-gray-50">
@@ -73,6 +74,7 @@ export default function StudentTable({ students }: Props) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
