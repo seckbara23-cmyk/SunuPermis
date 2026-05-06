@@ -39,7 +39,7 @@ export default function ExamSessionsClient({ initialSessions }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Sessions d&apos;examen</h1>
           <p className="text-sm text-gray-500 mt-1">{initialSessions.length} session{initialSessions.length !== 1 ? 's' : ''}</p>
@@ -60,6 +60,7 @@ export default function ExamSessionsClient({ initialSessions }: Props) {
         {initialSessions.length === 0 ? (
           <p className="px-6 py-16 text-center text-sm text-gray-400">Aucune session d&apos;examen créée.</p>
         ) : (
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-100">
             <thead>
               <tr className="bg-gray-50">
@@ -101,6 +102,7 @@ export default function ExamSessionsClient({ initialSessions }: Props) {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

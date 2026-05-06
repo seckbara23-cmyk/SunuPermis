@@ -62,7 +62,7 @@ export default function ExamBookingsClient({ initialBookings }: Props) {
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">{actionError}</div>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {(['pending', 'approved', 'rejected', 'all'] as const).map((f) => (
           <button
             key={f}

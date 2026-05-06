@@ -44,7 +44,7 @@ export default function ExamBookingClient({ sessions, bookings, readyStudents }:
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Examens</h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -113,6 +113,7 @@ export default function ExamBookingClient({ sessions, bookings, readyStudents }:
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-100">
               <thead>
                 <tr className="bg-gray-50">
@@ -152,6 +153,7 @@ export default function ExamBookingClient({ sessions, bookings, readyStudents }:
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>

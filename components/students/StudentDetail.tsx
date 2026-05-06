@@ -22,9 +22,9 @@ interface InfoRowProps {
 
 function InfoRow({ label, value }: InfoRowProps) {
   return (
-    <div className="flex items-start justify-between py-3 border-b border-gray-100 last:border-0">
-      <span className="text-sm text-gray-500 shrink-0 w-40">{label}</span>
-      <span className="text-sm font-medium text-gray-900 text-right">{value}</span>
+    <div className="flex items-start justify-between gap-4 py-3 border-b border-gray-100 last:border-0">
+      <span className="text-sm text-gray-500 shrink-0 w-36">{label}</span>
+      <span className="text-sm font-medium text-gray-900 text-right min-w-0 break-words">{value}</span>
     </div>
   )
 }

@@ -34,7 +34,7 @@ export default function ResultsClient({ initialBookings }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Résultats d&apos;examen</h1>
           <p className="text-sm text-gray-500 mt-1">{pending.length} résultat{pending.length !== 1 ? 's' : ''} à enregistrer</p>

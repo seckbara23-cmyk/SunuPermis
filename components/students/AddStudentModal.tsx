@@ -107,14 +107,14 @@ export default function AddStudentModal({ role, drivingSchools, onClose }: Props
 
           <div className="px-6 py-5 space-y-4">
             <div className="rounded-xl bg-gray-50 border border-gray-200 px-5 py-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</span>
-                <span className="text-sm font-medium text-gray-900">{credentials.email}</span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide shrink-0">Email</span>
+                <span className="text-sm font-medium text-gray-900 text-right break-all min-w-0">{credentials.email}</span>
               </div>
               <div className="border-t border-gray-200" />
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Mot de passe</span>
-                <span className="text-sm font-mono font-semibold text-gray-900 tracking-widest">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide shrink-0">Mot de passe</span>
+                <span className="text-sm font-mono font-semibold text-gray-900 text-right break-all min-w-0">
                   {credentials.password}
                 </span>
               </div>

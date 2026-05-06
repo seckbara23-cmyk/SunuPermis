@@ -75,6 +75,7 @@ export default function AutoEcolesClient({ initialSchools }: Props) {
         {initialSchools.length === 0 ? (
           <p className="px-6 py-16 text-center text-sm text-gray-400">Aucune auto-école enregistrée.</p>
         ) : (
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-100">
             <thead>
               <tr className="bg-gray-50">
@@ -140,6 +141,7 @@ export default function AutoEcolesClient({ initialSchools }: Props) {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

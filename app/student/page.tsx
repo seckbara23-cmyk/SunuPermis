@@ -326,16 +326,16 @@ export default async function StudentDashboard() {
           </div>
         ) : (
           <div className="px-6 py-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">Statut</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-gray-600 shrink-0">Statut</p>
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${APPT_STATUS[appointment.status]?.className ?? 'bg-gray-100 text-gray-600'}`}>
                 {APPT_STATUS[appointment.status]?.label ?? appointment.status}
               </span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">Demande soumise le</p>
-              <p className="text-sm font-medium text-gray-900">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm text-gray-600 shrink-0">Demande soumise le</p>
+              <p className="text-sm font-medium text-gray-900 text-right min-w-0">
                 {new Date(appointment.requested_at ?? appointment.created_at).toLocaleDateString('fr-FR', {
                   day: 'numeric', month: 'long', year: 'numeric',
                 })}
@@ -343,9 +343,9 @@ export default async function StudentDashboard() {
             </div>
 
             {appointment.status === 'confirmed' && appointment.approved_at && (
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600">Validé le</p>
-                <p className="text-sm font-medium text-green-700">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm text-gray-600 shrink-0">Validé le</p>
+                <p className="text-sm font-medium text-green-700 text-right min-w-0">
                   {new Date(appointment.approved_at).toLocaleDateString('fr-FR', {
                     day: 'numeric', month: 'long', year: 'numeric',
                   })}
@@ -354,18 +354,18 @@ export default async function StudentDashboard() {
             )}
 
             {appointment.status === 'confirmed' && appointment.scheduled_at && (
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600">Date du rendez-vous</p>
-                <p className="text-sm font-semibold text-green-700">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm text-gray-600 shrink-0">Date du rendez-vous</p>
+                <p className="text-sm font-semibold text-green-700 text-right min-w-0">
                   {dateTimestamp(appointment.scheduled_at)}
                 </p>
               </div>
             )}
 
             {appointment.status === 'rejected' && appointment.rejected_at && (
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600">Rejeté le</p>
-                <p className="text-sm text-red-600">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm text-gray-600 shrink-0">Rejeté le</p>
+                <p className="text-sm text-red-600 text-right min-w-0">
                   {new Date(appointment.rejected_at).toLocaleDateString('fr-FR', {
                     day: 'numeric', month: 'long', year: 'numeric',
                   })}

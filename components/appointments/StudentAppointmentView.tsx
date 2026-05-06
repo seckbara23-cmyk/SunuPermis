@@ -34,16 +34,16 @@ export default function StudentAppointmentView({ appointment }: Props) {
           </p>
         </div>
       ) : (
-        <div className="max-w-lg bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-5 space-y-4">
+        <div className="w-full max-w-lg bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-5 space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-500">Statut</span>
             <AppointmentStatusBadge status={appointment.status} />
           </div>
 
           <div className="border-t border-gray-100 pt-4 space-y-3">
-            <div className="flex items-start justify-between">
-              <span className="text-sm text-gray-500">Demande soumise le</span>
-              <span className="text-sm font-medium text-gray-900 text-right">
+            <div className="flex items-start justify-between gap-4">
+              <span className="text-sm text-gray-500 shrink-0">Demande soumise le</span>
+              <span className="text-sm font-medium text-gray-900 text-right min-w-0">
                 {new Date(appointment.created_at).toLocaleDateString('fr-FR', {
                   day: 'numeric',
                   month: 'long',
@@ -53,9 +53,9 @@ export default function StudentAppointmentView({ appointment }: Props) {
             </div>
 
             {appointment.status === 'confirmed' && appointment.scheduled_at && (
-              <div className="flex items-start justify-between">
-                <span className="text-sm text-gray-500">Date du rendez-vous</span>
-                <span className="text-sm font-semibold text-green-700 text-right">
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-sm text-gray-500 shrink-0">Date du rendez-vous</span>
+                <span className="text-sm font-semibold text-green-700 text-right min-w-0">
                   {formatDateTime(appointment.scheduled_at)}
                 </span>
               </div>
