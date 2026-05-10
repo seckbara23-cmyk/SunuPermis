@@ -13,7 +13,6 @@ function SenegalFlag({ className }: { className?: string }) {
       <rect width="1" height="2" fill="#00853F" />
       <rect x="1" width="1" height="2" fill="#FDEF42" />
       <rect x="2" width="1" height="2" fill="#E31B23" />
-      {/* Green 5-pointed star centred on the yellow stripe */}
       <polygon
         points="1.5,0.72 1.56,0.91 1.77,0.91 1.60,1.03 1.67,1.23 1.5,1.11 1.33,1.23 1.40,1.03 1.23,0.91 1.44,0.91"
         fill="#00853F"
@@ -25,14 +24,11 @@ function SenegalFlag({ className }: { className?: string }) {
 export default function LoginPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Full-width Senegal flag gradient — same top accent as every dashboard page */}
       <div className="h-1 shrink-0 bg-gradient-to-r from-[#00853F] via-[#FDEF42] to-[#E31B23]" />
 
       <main className="flex flex-1 items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
-          {/* Login card — matches the dashboard welcome-card pattern */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            {/* Internal gradient accent bar — echoes the welcome card */}
             <div className="h-1 bg-gradient-to-r from-[#00853F] via-[#FDEF42] to-[#E31B23]" />
 
             {/* Brand header */}
@@ -44,10 +40,10 @@ export default function LoginPage() {
                 <h1 className="text-2xl font-bold text-navy">SunuPermis</h1>
                 <SenegalFlag className="rounded-[2px] shadow-sm shrink-0" />
               </div>
-              <p className="mt-1.5 text-sm text-gray-500">Connectez-vous à votre espace</p>
+              <p className="mt-1.5 text-sm text-gray-500">Sélectionnez votre espace et connectez-vous</p>
             </div>
 
-            {/* Form section */}
+            {/* Tabbed login form */}
             <div className="px-8 py-7">
               <LoginForm />
             </div>
