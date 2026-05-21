@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: '/admin/exam-sessions', label: "Sessions d'examen" },
   { href: '/admin/exam-bookings', label: 'Réservations'      },
   { href: '/admin/results',       label: 'Résultats'         },
+  { href: '/admin/audit-logs',    label: "Journaux d'audit"  },
 ]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

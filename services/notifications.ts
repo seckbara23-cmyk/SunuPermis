@@ -42,7 +42,8 @@ export async function sendNotification(payload: NotificationPayload): Promise<vo
       recipient_phone:   payload.recipientPhone  ?? null,
       channel:           payload.channel,
       type:              payload.type,
-      status:            'sent',
+      // TODO: update to 'sent' once a real provider (Resend/Twilio) confirms delivery
+      status:            'pending',
       message:           payload.message,
     })
   } catch {

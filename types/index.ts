@@ -10,7 +10,7 @@ export interface Profile {
   created_at: string
 }
 
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'suspended'
 
 export interface DrivingSchool {
   id: string

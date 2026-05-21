@@ -65,9 +65,10 @@ export const APPOINTMENT_STATUS_CONFIG: Record<AppointmentStatus, StatusConfig> 
 }
 
 export const APPROVAL_STATUS_CONFIG: Record<ApprovalStatus, StatusConfig> = {
-  pending:  { label: 'En attente', className: 'bg-amber-100 text-amber-700' },
-  approved: { label: 'Approuvée',  className: 'bg-green-100 text-green-700' },
-  rejected: { label: 'Rejetée',    className: 'bg-red-100 text-red-700' },
+  pending:   { label: 'En attente', className: 'bg-amber-100 text-amber-700' },
+  approved:  { label: 'Approuvée',  className: 'bg-green-100 text-green-700' },
+  rejected:  { label: 'Rejetée',    className: 'bg-red-100 text-red-700' },
+  suspended: { label: 'Suspendue',  className: 'bg-orange-100 text-orange-700' },
 }
 
 export const INSTRUCTOR_STATUS_OPTIONS = (

@@ -6,12 +6,13 @@ import type { DrivingSchool } from '@/types'
 import { approveSchool, rejectSchool, toggleSchoolStatus } from './actions'
 
 const APPROVAL_BADGE: Record<string, string> = {
-  pending:  'bg-amber-100 text-amber-700',
-  approved: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
+  pending:   'bg-amber-100 text-amber-700',
+  approved:  'bg-green-100 text-green-700',
+  rejected:  'bg-red-100 text-red-700',
+  suspended: 'bg-orange-100 text-orange-700',
 }
 const APPROVAL_LABEL: Record<string, string> = {
-  pending: 'En attente', approved: 'Approuvée', rejected: 'Rejetée',
+  pending: 'En attente', approved: 'Approuvée', rejected: 'Rejetée', suspended: 'Suspendue',
 }
 const STATUS_BADGE: Record<string, string> = {
   active:   'bg-green-100 text-green-700',
@@ -103,7 +104,7 @@ export default function AutoEcolesClient({ initialSchools }: Props) {
                   </td>
                   <td className="px-5 py-4">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE[s.status]}`}>
-                      {s.status === 'active' ? 'Active' : 'Inactive'}
+                      {s.status === 'active' ? 'Actif' : 'Inactif'}
                     </span>
                   </td>
                   <td className="px-5 py-4">
