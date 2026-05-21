@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DashboardShell from '@/components/layout/DashboardShell'
+import InstallPrompt from '@/components/pwa/InstallPrompt'
 
 const NAV_LINKS = [
   { href: '/student',          label: 'Mon espace'      },
@@ -65,6 +66,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
 
   return (
     <DashboardShell navLinks={NAV_LINKS} subtitle="Espace élève" homeHref="/student">
+      <InstallPrompt />
       {children}
     </DashboardShell>
   )
