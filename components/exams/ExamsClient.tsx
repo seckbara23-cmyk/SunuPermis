@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { MockExam, ExamQuestionForDisplay, ExamSubmitResult } from '@/types'
+import type { MockExam, InProgressExam, ExamSubmitResultV2 } from '@/types'
 import ExamHub from './ExamHub'
 import ExamSession from './ExamSession'
 import ExamResults from './ExamResults'
@@ -10,37 +10,53 @@ type Phase = 'idle' | 'active' | 'finished'
 
 interface Props {
   pastExams: MockExam[]
+  inProgressExam: InProgressExam | null
 }
 
-export default function ExamsClient({ pastExams }: Props) {
+export default function ExamsClient({ pastExams, inProgressExam }: Props) {
   const [phase, setPhase] = useState<Phase>('idle')
-  const [questions, setQuestions] = useState<ExamQuestionForDisplay[]>([])
-  const [result, setResult] = useState<ExamSubmitResult | null>(null)
+  const [activeExam, setActiveExam] = useState<InProgressExam | null>(null)
+  const [result, setResult] = useState<ExamSubmitResultV2 | null>(null)
 
-  function handleStart(qs: ExamQuestionForDisplay[]) {
-    setQuestions(qs)
+  function handleStart(exam: InProgressExam) {
+    setActiveExam(exam)
     setPhase('active')
   }
 
-  function handleComplete(res: ExamSubmitResult) {
+  function handleComplete(res: ExamSubmitResultV2) {
     setResult(res)
     setPhase('finished')
   }
 
   function handleRetry() {
-    // router.refresh() was called in ExamSession before onComplete, so
-    // the server has already been asked to revalidate. Going back to idle
-    // will render ExamHub with the updated pastExams from the server.
     setPhase('idle')
+    setActiveExam(null)
+    setResult(null)
   }
 
-  if (phase === 'active') {
-    return <ExamSession questions={questions} onComplete={handleComplete} />
+  if (phase === 'active' && activeExam) {
+    return (
+      <ExamSession
+        questions={activeExam.questions}
+        mode={activeExam.mode}
+        categoryFilter={activeExam.categoryFilter}
+        initialAnswers={activeExam.answers}
+        initialIndex={activeExam.currentIndex}
+        initialElapsed={activeExam.elapsedSeconds}
+        onComplete={handleComplete}
+      />
+    )
   }
 
   if (phase === 'finished' && result) {
     return <ExamResults result={result} onRetry={handleRetry} />
   }
 
-  return <ExamHub pastExams={pastExams} onStart={handleStart} />
+  return (
+    <ExamHub
+      pastExams={pastExams}
+      inProgressExam={inProgressExam}
+      onStart={handleStart}
+    />
+  )
 }

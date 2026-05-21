@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { href: '/admin/results',        label: 'Résultats'          },
   { href: '/admin/payments',       label: 'Paiements'          },
   { href: '/admin/notifications',  label: 'Notifications'      },
+  { href: '/admin/questions',      label: 'Questions'           },
   { href: '/admin/audit-logs',     label: "Journaux d'audit"   },
 ]
 

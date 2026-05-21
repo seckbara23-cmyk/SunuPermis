@@ -143,14 +143,19 @@ export interface PaymentWithStudent extends Payment {
   students: { full_name: string }
 }
 
+export type ExamMode = 'exam' | 'practice'
+
 export interface ExamQuestion {
   id: string
   question_text: string
   options: string[]
   correct_answer: string
-  explanation: string
+  explanation: string | null
   category: string
   difficulty: 'easy' | 'medium' | 'hard'
+  is_active: boolean
+  learning_tip: string | null
+  tags: string[]
   created_at: string
 }
 
@@ -160,6 +165,7 @@ export interface ExamQuestionForDisplay {
   options: string[]
   category: string
   difficulty: 'easy' | 'medium' | 'hard'
+  learning_tip: string | null
   created_at: string
 }
 
@@ -169,6 +175,9 @@ export interface MockExam {
   score: number
   total_questions: number
   passed: boolean
+  mode: ExamMode
+  duration_seconds: number | null
+  category_filter: string | null
   created_at: string
 }
 
@@ -178,6 +187,41 @@ export interface ExamSubmitResult {
   totalQuestions: number
   correctCount: number
   passed: boolean
+}
+
+export interface GradedAnswer {
+  questionId: string
+  selectedAnswer: string
+  isCorrect: boolean
+  correctAnswer: string
+  explanation: string | null
+  learningTip: string | null
+  category: string
+  questionText: string
+  options: string[]
+}
+
+export interface ExamSubmitResultV2 extends ExamSubmitResult {
+  mode: ExamMode
+  durationSeconds: number | null
+  gradedAnswers: GradedAnswer[]
+  categoryStats: Record<string, { correct: number; total: number }>
+}
+
+export interface InProgressExam {
+  questions: ExamQuestionForDisplay[]
+  answers: Record<string, string>
+  currentIndex: number
+  elapsedSeconds: number
+  mode: ExamMode
+  categoryFilter: string | null
+}
+
+export interface PracticeAnswerFeedback {
+  isCorrect: boolean
+  correctAnswer: string
+  explanation: string | null
+  learningTip: string | null
 }
 
 // ── Exam sessions ──────────────────────────────────────────────

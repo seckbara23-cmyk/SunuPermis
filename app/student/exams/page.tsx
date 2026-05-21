@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getPastExams, getStudentByProfileId } from '@/services/exams'
+import { getInProgressExam } from '@/app/student/mock-exams/actions'
 import ExamsClient from '@/components/exams/ExamsClient'
 
 export default async function StudentExamsPage() {
@@ -31,6 +32,10 @@ export default async function StudentExamsPage() {
     )
   }
 
-  const pastExams = await getPastExams(student.id)
-  return <ExamsClient pastExams={pastExams} />
+  const [pastExams, inProgressExam] = await Promise.all([
+    getPastExams(student.id),
+    getInProgressExam(),
+  ])
+
+  return <ExamsClient pastExams={pastExams} inProgressExam={inProgressExam} />
 }

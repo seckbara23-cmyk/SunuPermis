@@ -21,7 +21,8 @@ export async function fetchExamQuestions(): Promise<{
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('exam_questions')
-    .select('id, question_text, options, category, difficulty, created_at')
+    .select('id, question_text, options, category, difficulty, learning_tip, created_at')
+    .eq('is_active', true)
 
   if (error) return { error: error.message }
   if (!data || data.length === 0) return { error: 'Aucune question disponible.' }

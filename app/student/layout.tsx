@@ -3,8 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import DashboardShell from '@/components/layout/DashboardShell'
 
 const NAV_LINKS = [
-  { href: '/student',       label: 'Mon espace'     },
-  { href: '/student/exams', label: 'Examens blancs' },
+  { href: '/student',          label: 'Mon espace'      },
+  { href: '/student/learning', label: 'Apprentissage'   },
+  { href: '/student/exams',    label: 'Examens blancs'  },
 ]
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
