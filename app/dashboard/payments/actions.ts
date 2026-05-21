@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { logAuditEvent } from '@/lib/audit'
 import type { PaymentMethod, PaymentStatus } from '@/types'
 
 export interface AddPaymentInput {
@@ -23,7 +24,7 @@ export async function addPayment(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, driving_school_id')
+    .select('id, role, driving_school_id')
     .eq('user_id', user.id)
     .single()
 
@@ -47,17 +48,37 @@ export async function addPayment(
     schoolId = student.driving_school_id
   }
 
-  const { error } = await supabase.from('payments').insert({
-    student_id: input.student_id,
-    driving_school_id: schoolId,
-    amount: input.amount,
-    payment_method: input.payment_method,
-    status: input.status,
-    payment_date: input.payment_date,
-    notes: input.notes?.trim() || null,
-  })
+  const { data: inserted, error } = await supabase
+    .from('payments')
+    .insert({
+      student_id:        input.student_id,
+      driving_school_id: schoolId,
+      amount:            input.amount,
+      payment_method:    input.payment_method,
+      status:            input.status,
+      payment_date:      input.payment_date,
+      notes:             input.notes?.trim() || null,
+    })
+    .select('id')
+    .single()
 
   if (error) return { error: error.message }
+
+  await logAuditEvent({
+    actorProfileId: profile.id,
+    actorUserId:    user.id,
+    actorRole:      profile.role,
+    action:         'payment.recorded',
+    entityType:     'payment',
+    entityId:       inserted.id,
+    metadata: {
+      driving_school_id: schoolId,
+      student_id:        input.student_id,
+      amount:            input.amount,
+      payment_method:    input.payment_method,
+      status:            input.status,
+    },
+  })
 
   revalidatePath('/dashboard/payments')
   return {}

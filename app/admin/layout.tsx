@@ -3,14 +3,16 @@ import { createClient } from '@/lib/supabase/server'
 import DashboardShell from '@/components/layout/DashboardShell'
 
 const NAV_LINKS = [
-  { href: '/admin',               label: 'Tableau de bord'   },
-  { href: '/admin/auto-ecoles',   label: 'Auto-écoles'       },
-  { href: '/admin/students',      label: 'Élèves'            },
-  { href: '/admin/reservations',  label: 'Rendez-vous'       },
-  { href: '/admin/exam-sessions', label: "Sessions d'examen" },
-  { href: '/admin/exam-bookings', label: 'Réservations'      },
-  { href: '/admin/results',       label: 'Résultats'         },
-  { href: '/admin/audit-logs',    label: "Journaux d'audit"  },
+  { href: '/admin',                label: 'Tableau de bord'    },
+  { href: '/admin/auto-ecoles',    label: 'Auto-écoles'        },
+  { href: '/admin/students',       label: 'Élèves'             },
+  { href: '/admin/reservations',   label: 'Rendez-vous'        },
+  { href: '/admin/exam-sessions',  label: "Sessions d'examen"  },
+  { href: '/admin/exam-bookings',  label: 'Réservations'       },
+  { href: '/admin/results',        label: 'Résultats'          },
+  { href: '/admin/payments',       label: 'Paiements'          },
+  { href: '/admin/notifications',  label: 'Notifications'      },
+  { href: '/admin/audit-logs',     label: "Journaux d'audit"   },
 ]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

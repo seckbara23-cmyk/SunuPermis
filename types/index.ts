@@ -128,6 +128,14 @@ export interface Payment {
   status: PaymentStatus
   payment_date: string
   notes: string | null
+  // Gateway fields (added in migration 009)
+  idempotency_key: string | null
+  provider_ref: string | null
+  gateway_status: PaymentGatewayStatus | null
+  initiated_at: string | null
+  completed_at: string | null
+  failure_reason: string | null
+  updated_at: string
   created_at: string
 }
 
@@ -211,8 +219,15 @@ export interface ExamBookingWithDetails extends ExamBooking {
 
 // ── Notifications ──────────────────────────────────────────────
 
-export type NotificationChannel = 'email' | 'sms' | 'log'
-export type NotificationStatus  = 'pending' | 'sent' | 'failed'
+export type NotificationChannel = 'email' | 'sms' | 'whatsapp' | 'log'
+export type NotificationStatus  =
+  | 'pending'
+  | 'queued'
+  | 'sending'
+  | 'sent'
+  | 'delivered'
+  | 'failed'
+  | 'cancelled'
 
 export interface Notification {
   id: string
@@ -223,5 +238,23 @@ export interface Notification {
   type: string
   status: NotificationStatus
   message: string
+  // Provider metadata (added in migration 009)
+  provider: string | null
+  provider_message_id: string | null
+  failure_reason: string | null
+  retry_count: number
+  sent_at: string | null
+  delivered_at: string | null
   created_at: string
 }
+
+// ── Payment gateway status ─────────────────────────────────────
+
+export type PaymentGatewayStatus =
+  | 'initiated'
+  | 'processing'
+  | 'succeeded'
+  | 'failed'
+  | 'expired'
+  | 'refunded'
+  | 'cancelled'

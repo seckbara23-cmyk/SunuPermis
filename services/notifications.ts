@@ -1,56 +1,127 @@
 /**
- * Notification service — placeholder implementation.
+ * Notification service — provider-abstracted implementation.
  *
- * Currently logs to the console and persists a record to the `notifications`
- * table so deliveries are traceable. Replace the TODO sections with a real
- * provider (Resend for email, Twilio/Orange SMS for SMS) when ready.
+ * Lifecycle per delivery:
+ *   pending → queued → sending → sent | failed
+ *
+ * Uses the service-role admin client to write to the notifications table,
+ * bypassing RLS (which only allows super_admin and own-user reads).
+ * All real provider integrations are behind TODO stubs in
+ * lib/notifications/providers/index.ts.
  */
 
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getEmailProvider, getSmsProvider } from '@/lib/notifications/providers'
+import type { NotificationPayload, SendResult } from '@/lib/notifications/types'
 
-export interface NotificationPayload {
-  recipientUserId?: string
-  recipientEmail?: string
-  recipientPhone?: string
-  channel: 'email' | 'sms' | 'log'
-  type: string
-  message: string
-}
+export type { NotificationPayload }
+
+// ── Core send function ─────────────────────────────────────────────────────────
 
 export async function sendNotification(payload: NotificationPayload): Promise<void> {
-  // ── PLACEHOLDER: log delivery ──────────────────────────────
-  console.log('[NOTIFICATION PLACEHOLDER]', {
-    recipient: payload.recipientEmail ?? payload.recipientPhone ?? payload.recipientUserId,
-    channel:   payload.channel,
-    type:      payload.type,
-    message:   payload.message,
-    timestamp: new Date().toISOString(),
-  })
+  const admin = createAdminClient()
+  const now = new Date().toISOString()
 
-  // TODO: wire real email provider (e.g. Resend)
-  // if (payload.channel === 'email' && payload.recipientEmail) { ... }
-
-  // TODO: wire real SMS provider (e.g. Twilio or local Senegalese provider)
-  // if (payload.channel === 'sms' && payload.recipientPhone) { ... }
-
-  // Persist the record for auditing
-  try {
-    const supabase = await createClient()
-    await supabase.from('notifications').insert({
+  // Insert initial record as 'queued'
+  const { data: record, error: insertErr } = await admin
+    .from('notifications')
+    .insert({
       recipient_user_id: payload.recipientUserId ?? null,
       recipient_email:   payload.recipientEmail  ?? null,
       recipient_phone:   payload.recipientPhone  ?? null,
       channel:           payload.channel,
       type:              payload.type,
-      // TODO: update to 'sent' once a real provider (Resend/Twilio) confirms delivery
-      status:            'pending',
+      status:            'queued',
       message:           payload.message,
     })
-  } catch {
-    // Non-fatal — log and continue
-    console.error('[NOTIFICATION] Failed to persist notification record')
+    .select('id')
+    .single()
+
+  if (insertErr || !record) {
+    console.error('[NOTIFICATION] Failed to persist record:', insertErr?.message)
+    return
+  }
+
+  // 'log' channel: mark sent immediately (no provider call needed)
+  if (payload.channel === 'log') {
+    console.log('[NOTIFICATION LOG]', {
+      type:    payload.type,
+      message: payload.message,
+      ts:      now,
+    })
+    await admin
+      .from('notifications')
+      .update({ status: 'sent', sent_at: now, provider: 'log' })
+      .eq('id', record.id)
+    return
+  }
+
+  // Dispatch to provider
+  let result: SendResult
+  try {
+    await admin
+      .from('notifications')
+      .update({ status: 'sending' })
+      .eq('id', record.id)
+
+    if (payload.channel === 'email' && payload.recipientEmail) {
+      result = await getEmailProvider().sendEmail(payload.recipientEmail, payload.message)
+    } else if (payload.channel === 'sms' && payload.recipientPhone) {
+      result = await getSmsProvider().sendSms(payload.recipientPhone, payload.message)
+    } else {
+      // No valid recipient for channel — cancel
+      await admin
+        .from('notifications')
+        .update({
+          status:         'cancelled',
+          failure_reason: 'No recipient address for channel',
+        })
+        .eq('id', record.id)
+      return
+    }
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : 'Provider error'
+    await admin
+      .from('notifications')
+      .update({
+        status:         'failed',
+        failure_reason: reason,
+        retry_count:    1,
+      })
+      .eq('id', record.id)
+    console.error('[NOTIFICATION] Provider threw:', reason)
+    return
+  }
+
+  // Update based on provider result
+  if (result.success) {
+    await admin
+      .from('notifications')
+      .update({
+        status:              'sent',
+        provider:            result.provider,
+        provider_message_id: result.providerMessageId ?? null,
+        sent_at:             new Date().toISOString(),
+      })
+      .eq('id', record.id)
+  } else {
+    await admin
+      .from('notifications')
+      .update({
+        status:         'failed',
+        provider:       result.provider,
+        failure_reason: result.failureReason ?? 'Unknown failure',
+        retry_count:    1,
+      })
+      .eq('id', record.id)
+    console.error('[NOTIFICATION] Delivery failed:', {
+      type:   payload.type,
+      reason: result.failureReason,
+    })
   }
 }
+
+// ── Domain notification helpers ────────────────────────────────────────────────
 
 export async function notifyBookingApproved(params: {
   studentEmail:  string
@@ -67,28 +138,13 @@ export async function notifyBookingApproved(params: {
   const studentMsg = `Bonne nouvelle ! Votre inscription à l'examen de conduite du ${dateLabel} au centre « ${params.examCenter} » a été approuvée.`
   const schoolMsg  = `La réservation d'examen (ID: ${params.bookingId}) pour le ${dateLabel} a été approuvée.`
 
-  await sendNotification({
-    recipientEmail: params.studentEmail,
-    channel: 'email',
-    type: 'booking_approved',
-    message: studentMsg,
-  })
+  await sendNotification({ recipientEmail: params.studentEmail, channel: 'email', type: 'booking_approved', message: studentMsg })
 
   if (params.studentPhone) {
-    await sendNotification({
-      recipientPhone: params.studentPhone,
-      channel: 'sms',
-      type: 'booking_approved',
-      message: studentMsg,
-    })
+    await sendNotification({ recipientPhone: params.studentPhone, channel: 'sms', type: 'booking_approved', message: studentMsg })
   }
 
-  await sendNotification({
-    recipientEmail: params.schoolEmail,
-    channel: 'email',
-    type: 'booking_approved',
-    message: schoolMsg,
-  })
+  await sendNotification({ recipientEmail: params.schoolEmail, channel: 'email', type: 'booking_approved', message: schoolMsg })
 }
 
 export async function notifyBookingRejected(params: {
@@ -131,6 +187,6 @@ export async function notifyAppointmentRejected(params: {
   studentName:     string
   rejectionReason: string
 }) {
-  const msg = `Bonjour ${params.studentName}, votre demande de rendez-vous d'examen a été rejetée. Motif : ${params.rejectionReason}. Contactez votre auto-école pour plus d'informations.`
+  const msg = `Bonjour ${params.studentName}, votre demande de rendez-vous d'examen a été rejetée. Motif : ${params.rejectionReason}. Contactez votre auto-école pour plus d'informations.`
   await sendNotification({ recipientEmail: params.studentEmail, channel: 'email', type: 'appointment_rejected', message: msg })
 }

@@ -12,12 +12,12 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export interface AuditEventParams {
-  actorProfileId: string
-  actorUserId:    string
+  actorProfileId: string | null
+  actorUserId:    string | null
   actorRole:      string
   action:         string
   entityType:     string
-  entityId:       string
+  entityId:       string | null
   metadata:       Record<string, unknown>
 }
 
@@ -35,12 +35,12 @@ export async function logAuditEvent(params: AuditEventParams): Promise<void> {
     const { data, error } = await admin
       .from('audit_logs')
       .insert({
-        actor_profile_id: params.actorProfileId,
-        actor_user_id:    params.actorUserId,
+        actor_profile_id: params.actorProfileId ?? null,
+        actor_user_id:    params.actorUserId    ?? null,
         actor_role:       params.actorRole,
         action:           params.action,
         entity_type:      params.entityType,
-        entity_id:        params.entityId,
+        entity_id:        params.entityId ?? null,
         metadata:         params.metadata,
       })
       .select('id')
