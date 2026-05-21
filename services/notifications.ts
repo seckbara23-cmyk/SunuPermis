@@ -190,3 +190,30 @@ export async function notifyAppointmentRejected(params: {
   const msg = `Bonjour ${params.studentName}, votre demande de rendez-vous d'examen a été rejetée. Motif : ${params.rejectionReason}. Contactez votre auto-école pour plus d'informations.`
   await sendNotification({ recipientEmail: params.studentEmail, channel: 'email', type: 'appointment_rejected', message: msg })
 }
+
+export async function notifyStudentLifecycle(params: {
+  action:       'suspended' | 'archived' | 'reactivated'
+  studentEmail: string
+  studentName:  string
+  reason?:      string
+}) {
+  let msg: string
+  let type: string
+
+  if (params.action === 'suspended') {
+    msg  = `Bonjour ${params.studentName}, votre compte étudiant SunuPermis a été suspendu.`
+    if (params.reason) msg += ` Motif : ${params.reason}.`
+    msg += ' Contactez votre auto-école ou l\'administration SunuPermis pour plus d\'informations.'
+    type = 'student_suspended'
+  } else if (params.action === 'archived') {
+    msg  = `Bonjour ${params.studentName}, votre compte étudiant SunuPermis a été archivé.`
+    if (params.reason) msg += ` Motif : ${params.reason}.`
+    msg += ' Contactez votre auto-école ou l\'administration SunuPermis si vous avez des questions.'
+    type = 'student_archived'
+  } else {
+    msg  = `Bonjour ${params.studentName}, votre compte étudiant SunuPermis a été réactivé. Vous pouvez vous connecter à votre espace élève.`
+    type = 'student_reactivated'
+  }
+
+  await sendNotification({ recipientEmail: params.studentEmail, channel: 'email', type, message: msg })
+}

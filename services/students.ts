@@ -13,19 +13,35 @@ export async function getStudents(): Promise<Student[]> {
   return data ?? []
 }
 
+// accountStatusFilter values:
+//   undefined / 'active'   → active students only (default)
+//   'suspended'            → suspended students only
+//   'archived'             → archived students only
+//   'all'                  → all students regardless of status
 export async function getStudentsPaginated(
   page: number,
   pageSize: number,
+  accountStatusFilter?: string,
 ): Promise<{ students: Student[]; total: number }> {
   const supabase = await createClient()
   const offset = (page - 1) * pageSize
 
-  const { data, error, count } = await supabase
+  let query = supabase
     .from('students')
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(offset, offset + pageSize - 1)
 
+  if (!accountStatusFilter || accountStatusFilter === 'active') {
+    query = query.eq('account_status', 'active')
+  } else if (accountStatusFilter === 'suspended') {
+    query = query.eq('account_status', 'suspended')
+  } else if (accountStatusFilter === 'archived') {
+    query = query.eq('account_status', 'archived')
+  }
+  // 'all': no additional filter — show everyone
+
+  const { data, error, count } = await query
   if (error) throw new Error(error.message)
   return { students: data ?? [], total: count ?? 0 }
 }

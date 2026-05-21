@@ -9,7 +9,7 @@ const PAGE_SIZE = 20
 export default async function StudentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>
+  searchParams: Promise<{ page?: string; account_status?: string }>
 }) {
   const supabase = await createClient()
 
@@ -27,11 +27,12 @@ export default async function StudentsPage({
   const role = profile.role as UserRole
   const canAdd = role === 'school_admin' || role === 'super_admin'
 
-  const { page: pageParam } = await searchParams
+  const { page: pageParam, account_status: accountStatusParam } = await searchParams
   const page = Math.max(1, parseInt(pageParam ?? '1', 10) || 1)
+  const accountStatusFilter = accountStatusParam ?? 'active'
 
   const [{ students, total }, drivingSchools] = await Promise.all([
-    getStudentsPaginated(page, PAGE_SIZE),
+    getStudentsPaginated(page, PAGE_SIZE, accountStatusFilter),
     role === 'super_admin' ? getDrivingSchools() : Promise.resolve([]),
   ])
 
@@ -45,6 +46,7 @@ export default async function StudentsPage({
       page={page}
       pageSize={PAGE_SIZE}
       basePath="/dashboard/students"
+      accountStatusFilter={accountStatusFilter}
     />
   )
 }

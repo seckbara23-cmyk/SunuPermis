@@ -3,7 +3,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
-import type { TrainingStatus } from '@/types'
+import { logAuditEvent } from '@/lib/audit'
+import { notifyStudentLifecycle } from '@/services/notifications'
+import type { TrainingStatus, AccountStatus } from '@/types'
 
 export interface AddStudentInput {
   full_name: string
@@ -207,6 +209,258 @@ export async function uploadMedicalDocument(
 
   revalidatePath('/dashboard/students')
   revalidatePath(`/dashboard/students/${studentId}`)
+  return {}
+}
+
+// ── Lifecycle helpers ────────────────────────────────────────────────────────
+
+async function requireLifecycleActor(): Promise<{
+  error?: string
+  userId?: string
+  profileId?: string
+  role?: string
+  schoolId?: string | null
+}> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non authentifié.' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, role, driving_school_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile) return { error: 'Profil introuvable.' }
+  if (profile.role !== 'super_admin' && profile.role !== 'school_admin') {
+    return { error: 'Accès refusé.' }
+  }
+
+  return {
+    userId:    user.id,
+    profileId: profile.id,
+    role:      profile.role,
+    schoolId:  profile.driving_school_id ?? null,
+  }
+}
+
+async function verifySchoolOwnership(
+  studentId: string,
+  actor: { role: string; schoolId: string | null | undefined }
+): Promise<{ error?: string; student?: { account_status: string; driving_school_id: string; email: string; full_name: string } }> {
+  const admin = createAdminClient()
+  const { data: student } = await admin
+    .from('students')
+    .select('account_status, driving_school_id, email, full_name')
+    .eq('id', studentId)
+    .single()
+
+  if (!student) return { error: 'Élève introuvable.' }
+
+  if (actor.role === 'school_admin') {
+    if (!actor.schoolId || student.driving_school_id !== actor.schoolId) {
+      return { error: "Accès refusé : cet élève n'appartient pas à votre auto-école." }
+    }
+  }
+
+  return { student }
+}
+
+function revalidateStudentPaths(studentId: string) {
+  revalidatePath('/dashboard/students')
+  revalidatePath(`/dashboard/students/${studentId}`)
+}
+
+// ── Lifecycle mutations ──────────────────────────────────────────────────────
+
+export async function suspendStudent(
+  studentId: string,
+  reason: string
+): Promise<{ error?: string }> {
+  if (!reason.trim()) return { error: 'La raison de la suspension est obligatoire.' }
+
+  const actor = await requireLifecycleActor()
+  if (actor.error) return { error: actor.error }
+
+  const { error: ownerErr, student } = await verifySchoolOwnership(studentId, { role: actor.role!, schoolId: actor.schoolId })
+  if (ownerErr) return { error: ownerErr }
+
+  if (student!.account_status === 'suspended') {
+    return { error: "Cet élève est déjà suspendu." }
+  }
+
+  const admin = createAdminClient()
+  const { data: updated, error } = await admin
+    .from('students')
+    .update({
+      account_status:    'suspended',
+      suspension_reason: reason.trim(),
+      archived_at:       null,
+      archived_by:       null,
+      archive_reason:    null,
+      updated_at:        new Date().toISOString(),
+    })
+    .eq('id', studentId)
+    .select('id')
+    .single()
+
+  if (error) return { error: error.message }
+  if (!updated) return { error: 'Mise à jour impossible.' }
+
+  await logAuditEvent({
+    actorProfileId: actor.profileId!,
+    actorUserId:    actor.userId!,
+    actorRole:      actor.role!,
+    action:         'student.suspended',
+    entityType:     'student',
+    entityId:       studentId,
+    metadata: {
+      student_id:       studentId,
+      school_id:        student!.driving_school_id,
+      reason:           reason.trim(),
+      previous_status:  student!.account_status,
+      new_status:       'suspended',
+    },
+  })
+
+  try {
+    await notifyStudentLifecycle({
+      action:       'suspended',
+      studentEmail: student!.email,
+      studentName:  student!.full_name,
+      reason:       reason.trim(),
+    })
+  } catch { /* non-fatal */ }
+
+  revalidateStudentPaths(studentId)
+  return {}
+}
+
+export async function archiveStudent(
+  studentId: string,
+  reason: string
+): Promise<{ error?: string }> {
+  if (!reason.trim()) return { error: "La raison de l'archivage est obligatoire." }
+
+  const actor = await requireLifecycleActor()
+  if (actor.error) return { error: actor.error }
+
+  const { error: ownerErr, student } = await verifySchoolOwnership(studentId, { role: actor.role!, schoolId: actor.schoolId })
+  if (ownerErr) return { error: ownerErr }
+
+  if (student!.account_status === 'archived') {
+    return { error: "Cet élève est déjà archivé." }
+  }
+
+  const now = new Date().toISOString()
+  const admin = createAdminClient()
+  const { data: updated, error } = await admin
+    .from('students')
+    .update({
+      account_status:    'archived',
+      archive_reason:    reason.trim(),
+      archived_at:       now,
+      archived_by:       actor.profileId,
+      suspension_reason: null,
+      reactivated_at:    null,
+      reactivated_by:    null,
+      updated_at:        now,
+    })
+    .eq('id', studentId)
+    .select('id')
+    .single()
+
+  if (error) return { error: error.message }
+  if (!updated) return { error: 'Mise à jour impossible.' }
+
+  await logAuditEvent({
+    actorProfileId: actor.profileId!,
+    actorUserId:    actor.userId!,
+    actorRole:      actor.role!,
+    action:         'student.archived',
+    entityType:     'student',
+    entityId:       studentId,
+    metadata: {
+      student_id:       studentId,
+      school_id:        student!.driving_school_id,
+      reason:           reason.trim(),
+      previous_status:  student!.account_status,
+      new_status:       'archived',
+    },
+  })
+
+  try {
+    await notifyStudentLifecycle({
+      action:       'archived',
+      studentEmail: student!.email,
+      studentName:  student!.full_name,
+      reason:       reason.trim(),
+    })
+  } catch { /* non-fatal */ }
+
+  revalidateStudentPaths(studentId)
+  return {}
+}
+
+export async function reactivateStudent(
+  studentId: string
+): Promise<{ error?: string }> {
+  const actor = await requireLifecycleActor()
+  if (actor.error) return { error: actor.error }
+
+  const { error: ownerErr, student } = await verifySchoolOwnership(studentId, { role: actor.role!, schoolId: actor.schoolId })
+  if (ownerErr) return { error: ownerErr }
+
+  if (student!.account_status === 'active') {
+    return { error: "Cet élève est déjà actif." }
+  }
+
+  const previousStatus = student!.account_status as AccountStatus
+  const now = new Date().toISOString()
+  const admin = createAdminClient()
+  const { data: updated, error } = await admin
+    .from('students')
+    .update({
+      account_status:    'active',
+      reactivated_at:    now,
+      reactivated_by:    actor.profileId,
+      suspension_reason: null,
+      archived_at:       null,
+      archived_by:       null,
+      archive_reason:    null,
+      updated_at:        now,
+    })
+    .eq('id', studentId)
+    .select('id')
+    .single()
+
+  if (error) return { error: error.message }
+  if (!updated) return { error: 'Mise à jour impossible.' }
+
+  await logAuditEvent({
+    actorProfileId: actor.profileId!,
+    actorUserId:    actor.userId!,
+    actorRole:      actor.role!,
+    action:         'student.reactivated',
+    entityType:     'student',
+    entityId:       studentId,
+    metadata: {
+      student_id:       studentId,
+      school_id:        student!.driving_school_id,
+      previous_status:  previousStatus,
+      new_status:       'active',
+    },
+  })
+
+  try {
+    await notifyStudentLifecycle({
+      action:       'reactivated',
+      studentEmail: student!.email,
+      studentName:  student!.full_name,
+    })
+  } catch { /* non-fatal */ }
+
+  revalidateStudentPaths(studentId)
   return {}
 }
 

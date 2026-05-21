@@ -29,6 +29,7 @@ export interface DrivingSchool {
 
 export type TrainingStatus = 'registered' | 'in_training' | 'ready_for_exam' | 'completed' | 'inactive'
 export type PaymentStatus  = 'pending' | 'partial' | 'paid' | 'overdue'
+export type AccountStatus  = 'active' | 'suspended' | 'archived'
 
 export interface Student {
   id: string
@@ -45,6 +46,14 @@ export interface Student {
   blood_type: string | null
   medical_document_url: string | null
   enrollment_date: string
+  // Lifecycle fields added in migration 011
+  account_status: AccountStatus
+  archived_at: string | null
+  archived_by: string | null
+  reactivated_at: string | null
+  reactivated_by: string | null
+  suspension_reason: string | null
+  archive_reason: string | null
   created_at: string
   updated_at: string
 }

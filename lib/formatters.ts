@@ -1,4 +1,4 @@
-import type { TrainingStatus, PaymentStatus, PaymentMethod, InstructorStatus, LessonStatus, ApprovalStatus, AppointmentStatus } from '@/types'
+import type { TrainingStatus, PaymentStatus, PaymentMethod, InstructorStatus, LessonStatus, ApprovalStatus, AppointmentStatus, AccountStatus } from '@/types'
 
 export interface StatusConfig {
   label: string
@@ -62,6 +62,12 @@ export const APPOINTMENT_STATUS_CONFIG: Record<AppointmentStatus, StatusConfig> 
   confirmed: { label: 'Rendez-vous validé',       className: 'bg-green-100 text-green-700' },
   rejected:  { label: 'Rendez-vous rejeté',       className: 'bg-red-100 text-red-700' },
   cancelled: { label: 'Annulé',                   className: 'bg-gray-100 text-gray-500' },
+}
+
+export const ACCOUNT_STATUS_CONFIG: Record<AccountStatus, StatusConfig> = {
+  active:    { label: 'Actif',    className: 'bg-green-100 text-green-700' },
+  suspended: { label: 'Suspendu', className: 'bg-orange-100 text-orange-700' },
+  archived:  { label: 'Archivé',  className: 'bg-gray-100 text-gray-500' },
 }
 
 export const APPROVAL_STATUS_CONFIG: Record<ApprovalStatus, StatusConfig> = {

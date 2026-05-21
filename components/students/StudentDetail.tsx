@@ -8,9 +8,13 @@ import {
   updateStudentInfo,
   uploadMedicalDocument,
   getSignedDocumentUrl,
+  suspendStudent,
+  archiveStudent,
+  reactivateStudent,
 } from '@/app/dashboard/students/actions'
-import { TrainingStatusBadge, PaymentStatusBadge } from '@/components/ui/StatusBadge'
+import { TrainingStatusBadge, PaymentStatusBadge, AccountStatusBadge } from '@/components/ui/StatusBadge'
 import { TRAINING_STATUS_OPTIONS } from '@/lib/formatters'
+import LifecycleModal from './LifecycleModal'
 
 const BLOOD_TYPES = ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−']
 const ACCEPTED_MIME = 'application/pdf,image/jpeg,image/png,image/webp'
@@ -36,6 +40,11 @@ interface Props {
 }
 
 export default function StudentDetail({ student, canUpdate }: Props) {
+  // ── Account lifecycle ─────────────────────────────────────
+  const [accountStatus, setAccountStatus]   = useState(student.account_status)
+  const [lifecycleModal, setLifecycleModal] = useState<'suspend' | 'archive' | 'reactivate' | null>(null)
+  const [lifecycleError, setLifecycleError] = useState<string | null>(null)
+
   // ── Training status ───────────────────────────────────────
   const [trainingStatus, setTrainingStatus] = useState<TrainingStatus>(student.training_status)
   const [selected, setSelected]             = useState<TrainingStatus>(student.training_status)
@@ -76,6 +85,29 @@ export default function StudentDetail({ student, canUpdate }: Props) {
     const t = setTimeout(() => setUploadSuccess(false), 3000)
     return () => clearTimeout(t)
   }, [uploadSuccess])
+
+  async function handleLifecycleConfirm(reason: string) {
+    setLifecycleError(null)
+    let result: { error?: string }
+
+    if (lifecycleModal === 'suspend') {
+      result = await suspendStudent(student.id, reason)
+    } else if (lifecycleModal === 'archive') {
+      result = await archiveStudent(student.id, reason)
+    } else {
+      result = await reactivateStudent(student.id)
+    }
+
+    if (result.error) {
+      setLifecycleError(result.error)
+      throw new Error(result.error)
+    }
+
+    if (lifecycleModal === 'suspend')    setAccountStatus('suspended')
+    if (lifecycleModal === 'archive')    setAccountStatus('archived')
+    if (lifecycleModal === 'reactivate') setAccountStatus('active')
+    setLifecycleModal(null)
+  }
 
   async function handleStatusUpdate() {
     if (selected === trainingStatus) return
@@ -146,6 +178,7 @@ export default function StudentDetail({ student, canUpdate }: Props) {
   const isDirty = selected !== trainingStatus
 
   return (
+    <>
     <div>
       {/* Back + title */}
       <div className="flex items-center gap-3 mb-6">
@@ -334,8 +367,70 @@ export default function StudentDetail({ student, canUpdate }: Props) {
           )}
         </div>
 
-        {/* ── Right: training status ────────────────────────── */}
+        {/* ── Right: training status + lifecycle ───────────────── */}
         <div className="flex flex-col gap-4">
+
+          {/* Account lifecycle panel */}
+          {canUpdate && (
+            <div className="bg-white rounded-xl border border-gray-200 px-6 py-5">
+              <h2 className="text-base font-semibold text-gray-900 mb-1">Gestion du compte</h2>
+              <p className="text-xs text-gray-400 mb-4">Statut actuel</p>
+
+              <div className="mb-4">
+                <AccountStatusBadge status={accountStatus} />
+              </div>
+
+              {lifecycleError && (
+                <p className="mb-3 text-xs text-red-600">{lifecycleError}</p>
+              )}
+
+              <div className="flex flex-col gap-2">
+                {accountStatus === 'active' && (
+                  <>
+                    <button
+                      onClick={() => { setLifecycleError(null); setLifecycleModal('suspend') }}
+                      className="w-full rounded-lg border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100 transition-colors"
+                    >
+                      Suspendre
+                    </button>
+                    <button
+                      onClick={() => { setLifecycleError(null); setLifecycleModal('archive') }}
+                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                    >
+                      Archiver
+                    </button>
+                  </>
+                )}
+
+                {accountStatus === 'suspended' && (
+                  <>
+                    <button
+                      onClick={() => { setLifecycleError(null); setLifecycleModal('reactivate') }}
+                      className="w-full rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors"
+                    >
+                      Réactiver
+                    </button>
+                    <button
+                      onClick={() => { setLifecycleError(null); setLifecycleModal('archive') }}
+                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                    >
+                      Archiver
+                    </button>
+                  </>
+                )}
+
+                {accountStatus === 'archived' && (
+                  <button
+                    onClick={() => { setLifecycleError(null); setLifecycleModal('reactivate') }}
+                    className="w-full rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors"
+                  >
+                    Réactiver
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="bg-white rounded-xl border border-gray-200 px-6 py-5">
             <h2 className="text-base font-semibold text-gray-900 mb-1">Statut de formation</h2>
             <p className="text-xs text-gray-400 mb-4">Statut actuel</p>
@@ -389,5 +484,15 @@ export default function StudentDetail({ student, canUpdate }: Props) {
         </div>
       </div>
     </div>
+
+      {lifecycleModal && (
+        <LifecycleModal
+          action={lifecycleModal}
+          studentName={student.full_name}
+          onConfirm={handleLifecycleConfirm}
+          onClose={() => { setLifecycleModal(null); setLifecycleError(null) }}
+        />
+      )}
+    </>
   )
 }
