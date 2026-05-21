@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { StudentWithSchool, TrainingStatus } from '@/types'
 
@@ -11,6 +12,17 @@ const STATUS_BADGE: Record<TrainingStatus, { label: string; className: string }>
 
 export default async function AdminStudentsPage() {
   const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('user_id', user.id)
+    .single()
+
+  if (profile?.role !== 'super_admin') redirect('/login')
 
   const { data } = await supabase
     .from('students')
