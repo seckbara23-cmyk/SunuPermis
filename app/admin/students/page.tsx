@@ -1,6 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { Pagination } from '@/components/ui/Pagination'
 import type { StudentWithSchool, TrainingStatus } from '@/types'
+
+const PAGE_SIZE = 25
 
 const STATUS_BADGE: Record<TrainingStatus, { label: string; className: string }> = {
   registered:    { label: 'Inscrit',             className: 'bg-gray-100 text-gray-600' },
@@ -10,7 +13,11 @@ const STATUS_BADGE: Record<TrainingStatus, { label: string; className: string }>
   inactive:      { label: 'Inactif',             className: 'bg-red-100 text-red-700' },
 }
 
-export default async function AdminStudentsPage() {
+export default async function AdminStudentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -24,14 +31,20 @@ export default async function AdminStudentsPage() {
 
   if (profile?.role !== 'super_admin') redirect('/login')
 
-  const { data } = await supabase
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, parseInt(pageParam ?? '1', 10) || 1)
+  const offset = (page - 1) * PAGE_SIZE
+
+  const { data, count } = await supabase
     .from('students')
-    .select('*, driving_schools(name)')
+    .select('*, driving_schools(name)', { count: 'exact' })
     .order('created_at', { ascending: false })
+    .range(offset, offset + PAGE_SIZE - 1)
 
   const students = (data ?? []) as StudentWithSchool[]
+  const total = count ?? 0
 
-  // Batch-generate signed URLs for all students who have a document
+  // Only sign URLs for students on the current page
   const docPaths = students
     .map((s) => s.medical_document_url)
     .filter((p): p is string => !!p)
@@ -40,7 +53,7 @@ export default async function AdminStudentsPage() {
   if (docPaths.length > 0) {
     const { data: signedUrls } = await supabase.storage
       .from('medical-documents')
-      .createSignedUrls(docPaths, 3600)
+      .createSignedUrls(docPaths, 600)
     if (signedUrls) {
       for (const item of signedUrls) {
         if (item.path && item.signedUrl) signedUrlMap[item.path] = item.signedUrl
@@ -53,7 +66,7 @@ export default async function AdminStudentsPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Élèves</h1>
         <p className="text-sm text-gray-500 mt-1">
-          {students.length} élève{students.length !== 1 ? 's' : ''} enregistré{students.length !== 1 ? 's' : ''}
+          {total} élève{total !== 1 ? 's' : ''} enregistré{total !== 1 ? 's' : ''}
         </p>
       </div>
 
@@ -123,6 +136,7 @@ export default async function AdminStudentsPage() {
             </table>
           </div>
         )}
+        <Pagination page={page} pageSize={PAGE_SIZE} total={total} basePath="/admin/students" />
       </div>
     </div>
   )

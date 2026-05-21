@@ -13,6 +13,23 @@ export async function getStudents(): Promise<Student[]> {
   return data ?? []
 }
 
+export async function getStudentsPaginated(
+  page: number,
+  pageSize: number,
+): Promise<{ students: Student[]; total: number }> {
+  const supabase = await createClient()
+  const offset = (page - 1) * pageSize
+
+  const { data, error, count } = await supabase
+    .from('students')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + pageSize - 1)
+
+  if (error) throw new Error(error.message)
+  return { students: data ?? [], total: count ?? 0 }
+}
+
 export async function getStudentById(id: string): Promise<Student | null> {
   const supabase = await createClient()
 

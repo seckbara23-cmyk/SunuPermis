@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { Student, UserRole } from '@/types'
 import StudentTable from './StudentTable'
 import AddStudentModal from './AddStudentModal'
+import { Pagination } from '@/components/ui/Pagination'
 
 interface DrivingSchoolOption {
   id: string
@@ -15,10 +16,15 @@ interface Props {
   canAdd: boolean
   role: UserRole
   drivingSchools: DrivingSchoolOption[]
+  total?: number
+  page?: number
+  pageSize?: number
+  basePath?: string
 }
 
-export default function StudentsClient({ students, canAdd, role, drivingSchools }: Props) {
+export default function StudentsClient({ students, canAdd, role, drivingSchools, total, page = 1, pageSize = 20, basePath = '/dashboard/students' }: Props) {
   const [modalOpen, setModalOpen] = useState(false)
+  const displayTotal = total ?? students.length
 
   return (
     <div>
@@ -26,7 +32,7 @@ export default function StudentsClient({ students, canAdd, role, drivingSchools 
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Élèves</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {students.length} élève{students.length !== 1 ? 's' : ''} enregistré{students.length !== 1 ? 's' : ''}
+            {displayTotal} élève{displayTotal !== 1 ? 's' : ''} enregistré{displayTotal !== 1 ? 's' : ''}
           </p>
         </div>
 
@@ -41,6 +47,9 @@ export default function StudentsClient({ students, canAdd, role, drivingSchools 
       </div>
 
       <StudentTable students={students} />
+      {total !== undefined && (
+        <Pagination page={page} pageSize={pageSize} total={total} basePath={basePath} />
+      )}
 
       {modalOpen && (
         <AddStudentModal

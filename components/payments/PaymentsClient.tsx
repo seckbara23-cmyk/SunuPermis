@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { PaymentWithStudent } from '@/types'
 import PaymentTable from './PaymentTable'
 import AddPaymentModal from './AddPaymentModal'
+import { Pagination } from '@/components/ui/Pagination'
 
 interface StudentOption {
   id: string
@@ -14,15 +15,20 @@ interface Props {
   payments: PaymentWithStudent[]
   students: StudentOption[]
   canAdd: boolean
+  total?: number
+  page?: number
+  pageSize?: number
+  basePath?: string
 }
 
 function formatFCFA(amount: number) {
   return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA'
 }
 
-export default function PaymentsClient({ payments, students, canAdd }: Props) {
+export default function PaymentsClient({ payments, students, canAdd, total, page = 1, pageSize = 20, basePath = '/dashboard/payments' }: Props) {
   const [modalOpen, setModalOpen] = useState(false)
 
+  const displayTotal = total ?? payments.length
   const totalPaid = payments
     .filter((p) => p.status === 'paid')
     .reduce((sum, p) => sum + Number(p.amount), 0)
@@ -35,7 +41,7 @@ export default function PaymentsClient({ payments, students, canAdd }: Props) {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Paiements</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {payments.length} transaction{payments.length !== 1 ? 's' : ''}
+            {displayTotal} transaction{displayTotal !== 1 ? 's' : ''}
             {pending > 0 && (
               <span className="text-red-600"> — {pending} en attente ou en retard</span>
             )}
@@ -56,6 +62,9 @@ export default function PaymentsClient({ payments, students, canAdd }: Props) {
       </div>
 
       <PaymentTable payments={payments} />
+      {total !== undefined && (
+        <Pagination page={page} pageSize={pageSize} total={total} basePath={basePath} />
+      )}
 
       {modalOpen && (
         <AddPaymentModal

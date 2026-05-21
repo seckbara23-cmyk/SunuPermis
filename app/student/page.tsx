@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { logAuditEvent } from '@/lib/audit'
 import type { Student, TrainingStatus, Appointment } from '@/types'
 
 // ── Effective status badge ─────────────────────────────────────────────────────
@@ -181,8 +182,19 @@ export default async function StudentDashboard() {
   if (student.medical_document_url) {
     const { data: signedData } = await supabase.storage
       .from('medical-documents')
-      .createSignedUrl(student.medical_document_url, 3600)
+      .createSignedUrl(student.medical_document_url, 600)
     medicalDocSignedUrl = signedData?.signedUrl ?? null
+    if (medicalDocSignedUrl) {
+      await logAuditEvent({
+        actorProfileId: profile.id,
+        actorUserId:    user.id,
+        actorRole:      'student',
+        action:         'document.accessed',
+        entityType:     'student',
+        entityId:       student.id,
+        metadata:       { document_path: student.medical_document_url },
+      })
+    }
   }
 
   const [{ data: pastExams }, { data: appointmentRaw }] = await Promise.all([

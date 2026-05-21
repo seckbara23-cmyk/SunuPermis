@@ -23,3 +23,26 @@ export async function getPayments(schoolId: string | null): Promise<PaymentWithS
   if (error) throw new Error(error.message)
   return (data ?? []) as unknown as PaymentWithStudent[]
 }
+
+export async function getPaymentsPaginated(
+  schoolId: string | null,
+  page: number,
+  pageSize: number,
+): Promise<{ payments: PaymentWithStudent[]; total: number }> {
+  const supabase = await createClient()
+  const offset = (page - 1) * pageSize
+
+  let query = supabase
+    .from('payments')
+    .select(PAYMENT_SELECT, { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + pageSize - 1)
+
+  if (schoolId) {
+    query = query.eq('driving_school_id', schoolId)
+  }
+
+  const { data, error, count } = await query
+  if (error) throw new Error(error.message)
+  return { payments: (data ?? []) as unknown as PaymentWithStudent[], total: count ?? 0 }
+}

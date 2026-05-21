@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyAppointmentConfirmed, notifyAppointmentRejected } from '@/services/notifications'
+import { logAuditEvent } from '@/lib/audit'
 import type { AppointmentWithStudent, AppointmentWithDetails } from '@/types'
 
 // ── Selects ────────────────────────────────────────────────────────────────────
@@ -21,69 +21,6 @@ const APPOINTMENT_SELECT_ADMIN = `
   students(full_name),
   driving_schools(name)
 ` as const
-
-// ── Audit helper ───────────────────────────────────────────────────────────────
-// Uses service-role client so it bypasses the no-insert-for-users RLS policy.
-// Non-fatal for the calling workflow, but errors are always surfaced via
-// console.error so they are visible in server logs and Vercel log drain.
-
-async function logAuditEvent(params: {
-  actorProfileId: string
-  actorUserId: string
-  actorRole: string
-  action: string
-  entityType: string
-  entityId: string
-  metadata: Record<string, unknown>
-}): Promise<void> {
-  // Preflight: catch missing env var before it throws inside createAdminClient.
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error(
-      '[AUDIT] SUPABASE_SERVICE_ROLE_KEY is not set — audit log skipped.',
-      'action:', params.action, 'entityId:', params.entityId,
-    )
-    return
-  }
-
-  try {
-    const admin = createAdminClient()
-    const { data, error } = await admin
-      .from('audit_logs')
-      .insert({
-        actor_profile_id: params.actorProfileId,
-        actor_user_id:    params.actorUserId,
-        actor_role:       params.actorRole,
-        action:           params.action,
-        entity_type:      params.entityType,
-        entity_id:        params.entityId,
-        metadata:         params.metadata,
-      })
-      .select('id')
-      .single()
-
-    if (error) {
-      console.error('[AUDIT] Insert failed:', {
-        message: error.message,
-        code:    error.code,
-        details: error.details,
-        hint:    error.hint,
-        action:  params.action,
-        entityType: params.entityType,
-        entityId:   params.entityId,
-      })
-    } else {
-      console.log('[AUDIT] ✓ Event persisted:', {
-        id:         data?.id,
-        action:     params.action,
-        entityType: params.entityType,
-        entityId:   params.entityId,
-        actorRole:  params.actorRole,
-      })
-    }
-  } catch (err) {
-    console.error('[AUDIT] Unexpected error writing audit log:', err)
-  }
-}
 
 // ── Mutation: create appointment request (school_admin) ────────────────────────
 

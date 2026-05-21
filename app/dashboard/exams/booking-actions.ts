@@ -1,7 +1,18 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { logAuditEvent } from '@/lib/audit'
 import { revalidatePath } from 'next/cache'
+
+function parseBookingError(message: string): string {
+  if (message.includes('CAPACITY_EXCEEDED')) {
+    return 'Cette session est complète. Aucune place disponible pour le moment.'
+  }
+  if (message.includes('SESSION_NOT_FOUND')) {
+    return "La session d'examen sélectionnée est introuvable."
+  }
+  return "Une erreur est survenue lors de la réservation. Veuillez réessayer."
+}
 
 export async function requestExamBooking(
   studentId: string,
@@ -13,7 +24,7 @@ export async function requestExamBooking(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, driving_school_id')
+    .select('id, role, driving_school_id')
     .eq('user_id', user.id)
     .single()
 
@@ -33,7 +44,42 @@ export async function requestExamBooking(
     return { error: "L'élève doit avoir le statut « Prêt pour l'examen »." }
   }
 
-  // Check no pending/approved booking already exists for this session
+  // Fetch session to check capacity at the application layer before hitting DB
+  const { data: session } = await supabase
+    .from('exam_sessions')
+    .select('id, available_slots, status')
+    .eq('id', sessionId)
+    .single()
+
+  if (!session) return { error: "Session d'examen introuvable." }
+  if (session.status !== 'open') return { error: "Cette session n'est plus ouverte aux réservations." }
+
+  // Application-level capacity pre-check (non-authoritative — DB trigger is the lock)
+  const { count: activeCount } = await supabase
+    .from('exam_bookings')
+    .select('*', { count: 'exact', head: true })
+    .eq('exam_session_id', sessionId)
+    .in('status', ['pending', 'approved'])
+
+  if ((activeCount ?? 0) >= session.available_slots) {
+    await logAuditEvent({
+      actorProfileId: profile.id,
+      actorUserId:    user.id,
+      actorRole:      'school_admin',
+      action:         'session.overbook_attempted',
+      entityType:     'exam_session',
+      entityId:       sessionId,
+      metadata: {
+        driving_school_id: profile.driving_school_id,
+        student_id:        studentId,
+        available_slots:   session.available_slots,
+        active_bookings:   activeCount ?? 0,
+      },
+    })
+    return { error: 'Cette session est complète. Aucune place disponible.' }
+  }
+
+  // Check no pending/approved booking already exists for this student/session
   const { data: existing } = await supabase
     .from('exam_bookings')
     .select('id, status')
@@ -45,14 +91,51 @@ export async function requestExamBooking(
     return { error: 'Une réservation existe déjà pour cet élève à cette session.' }
   }
 
-  const { error: dbErr } = await supabase.from('exam_bookings').insert({
-    student_id:        studentId,
-    driving_school_id: profile.driving_school_id,
-    exam_session_id:   sessionId,
-    status:            'pending',
-  })
+  const { data: inserted, error: dbErr } = await supabase
+    .from('exam_bookings')
+    .insert({
+      student_id:        studentId,
+      driving_school_id: profile.driving_school_id,
+      exam_session_id:   sessionId,
+      status:            'pending',
+    })
+    .select('id')
+    .single()
 
-  if (dbErr) return { error: dbErr.message }
+  if (dbErr) {
+    // DB trigger fired — capacity exceeded by concurrent request
+    if (dbErr.message?.includes('CAPACITY_EXCEEDED') || dbErr.message?.includes('capacity')) {
+      await logAuditEvent({
+        actorProfileId: profile.id,
+        actorUserId:    user.id,
+        actorRole:      'school_admin',
+        action:         'session.overbook_attempted',
+        entityType:     'exam_session',
+        entityId:       sessionId,
+        metadata: {
+          driving_school_id: profile.driving_school_id,
+          student_id:        studentId,
+          db_error:          dbErr.message,
+          source:            'db_trigger',
+        },
+      })
+    }
+    return { error: parseBookingError(dbErr.message) }
+  }
+
+  await logAuditEvent({
+    actorProfileId: profile.id,
+    actorUserId:    user.id,
+    actorRole:      'school_admin',
+    action:         'booking.requested',
+    entityType:     'exam_booking',
+    entityId:       inserted.id,
+    metadata: {
+      driving_school_id: profile.driving_school_id,
+      student_id:        studentId,
+      exam_session_id:   sessionId,
+    },
+  })
 
   revalidatePath('/dashboard/exams')
   return {}

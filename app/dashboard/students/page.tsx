@@ -1,10 +1,16 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getStudents, getDrivingSchools } from '@/services/students'
+import { getStudentsPaginated, getDrivingSchools } from '@/services/students'
 import StudentsClient from '@/components/students/StudentsClient'
 import type { UserRole } from '@/types'
 
-export default async function StudentsPage() {
+const PAGE_SIZE = 20
+
+export default async function StudentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -21,10 +27,11 @@ export default async function StudentsPage() {
   const role = profile.role as UserRole
   const canAdd = role === 'school_admin' || role === 'super_admin'
 
-  // Fetch in parallel — RLS scopes students automatically
-  // getDrivingSchools only matters for super_admin (school_admin sees just theirs, not shown)
-  const [students, drivingSchools] = await Promise.all([
-    getStudents(),
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, parseInt(pageParam ?? '1', 10) || 1)
+
+  const [{ students, total }, drivingSchools] = await Promise.all([
+    getStudentsPaginated(page, PAGE_SIZE),
     role === 'super_admin' ? getDrivingSchools() : Promise.resolve([]),
   ])
 
@@ -34,6 +41,10 @@ export default async function StudentsPage() {
       canAdd={canAdd}
       role={role}
       drivingSchools={drivingSchools}
+      total={total}
+      page={page}
+      pageSize={PAGE_SIZE}
+      basePath="/dashboard/students"
     />
   )
 }
