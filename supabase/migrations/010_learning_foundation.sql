@@ -27,12 +27,19 @@ COMMENT ON COLUMN public.exam_questions.tags          IS 'Free-form tags for adm
 
 
 -- ──────────────────────────────────────────────────────────────
--- 2. Update exam_questions_public view
---    Adds learning_tip (safe to expose — not the correct answer)
---    Filters to is_active = true so inactive questions are hidden
+-- 2. Rebuild exam_questions_public view
+--    The original view (004_hardening) had columns:
+--      id, question_text, options, category, difficulty, created_at
+--    We need to insert learning_tip before created_at and add the
+--    is_active filter.  CREATE OR REPLACE VIEW cannot reorder or
+--    insert columns mid-list (PostgreSQL 42P16), so we DROP first.
+--    CASCADE is safe: the view holds no data and no other views or
+--    functions depend on it.
 -- ──────────────────────────────────────────────────────────────
 
-CREATE OR REPLACE VIEW public.exam_questions_public
+DROP VIEW IF EXISTS public.exam_questions_public CASCADE;
+
+CREATE VIEW public.exam_questions_public
   WITH (security_invoker = false)
 AS
   SELECT
@@ -46,7 +53,7 @@ AS
   FROM public.exam_questions
   WHERE is_active = true;
 
--- Grant remains the same
+-- Restore grants (dropped with the view above)
 GRANT SELECT ON public.exam_questions_public TO authenticated, anon;
 
 COMMENT ON VIEW public.exam_questions_public IS
