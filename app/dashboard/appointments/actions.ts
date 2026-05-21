@@ -12,6 +12,7 @@ function revalidateBoth() {
   revalidatePath('/dashboard/appointments')
   revalidatePath('/dashboard/appointments-admin')
   revalidatePath('/admin/reservations')
+  revalidatePath('/student')
 }
 
 export async function requestAppointment(

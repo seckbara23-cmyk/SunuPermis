@@ -125,7 +125,7 @@ export async function approveAppointment(
   const previousStatus = current?.status ?? 'unknown'
   const now = new Date().toISOString()
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('appointments')
     .update({
       status:           'confirmed',
@@ -139,8 +139,11 @@ export async function approveAppointment(
       rejected_by:      null,
     })
     .eq('id', appointmentId)
+    .select('id')
+    .single()
 
   if (error) return { error: error.message }
+  if (!updated) return { error: 'Rendez-vous introuvable ou accès refusé.' }
 
   await logAuditEvent({
     actorProfileId: profile.id,
@@ -167,14 +170,17 @@ export async function approveAppointment(
       .single()
 
     if (appt?.students) {
-      const s = appt.students as unknown as { full_name: string; email: string; phone: string | null }
-      await notifyAppointmentConfirmed({
-        studentEmail: s.email,
-        studentPhone: s.phone,
-        studentName:  s.full_name,
-        schoolName:   '',
-        scheduledAt:  appt.scheduled_at ?? scheduledAt,
-      })
+      const raw = appt.students
+      const s = (Array.isArray(raw) ? raw[0] : raw) as { full_name: string; email: string; phone: string | null } | null
+      if (s?.email) {
+        await notifyAppointmentConfirmed({
+          studentEmail: s.email,
+          studentPhone: s.phone,
+          studentName:  s.full_name,
+          schoolName:   '',
+          scheduledAt:  appt.scheduled_at ?? scheduledAt,
+        })
+      }
     }
   } catch { /* non-fatal */ }
 
@@ -211,7 +217,7 @@ export async function rejectAppointment(
   const previousStatus = current?.status ?? 'unknown'
   const now = new Date().toISOString()
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('appointments')
     .update({
       status:           'rejected',
@@ -225,8 +231,11 @@ export async function rejectAppointment(
       approved_by:      null,
     })
     .eq('id', appointmentId)
+    .select('id')
+    .single()
 
   if (error) return { error: error.message }
+  if (!updated) return { error: 'Rendez-vous introuvable ou accès refusé.' }
 
   await logAuditEvent({
     actorProfileId: profile.id,
@@ -253,12 +262,15 @@ export async function rejectAppointment(
       .single()
 
     if (appt?.students) {
-      const s = appt.students as unknown as { full_name: string; email: string }
-      await notifyAppointmentRejected({
-        studentEmail:    s.email,
-        studentName:     s.full_name,
-        rejectionReason: reason.trim(),
-      })
+      const raw = appt.students
+      const s = (Array.isArray(raw) ? raw[0] : raw) as { full_name: string; email: string } | null
+      if (s?.email) {
+        await notifyAppointmentRejected({
+          studentEmail:    s.email,
+          studentName:     s.full_name,
+          rejectionReason: reason.trim(),
+        })
+      }
     }
   } catch { /* non-fatal */ }
 
@@ -283,12 +295,36 @@ export async function cancelAppointment(
 
   if (!profile || profile.role !== 'super_admin') return { error: 'Accès refusé.' }
 
-  const { error } = await supabase
+  const { data: current } = await supabase
+    .from('appointments')
+    .select('status, student_id, driving_school_id')
+    .eq('id', appointmentId)
+    .single()
+
+  const { data: updated, error } = await supabase
     .from('appointments')
     .update({ status: 'cancelled' })
     .eq('id', appointmentId)
+    .select('id')
+    .single()
 
   if (error) return { error: error.message }
+  if (!updated) return { error: 'Rendez-vous introuvable ou accès refusé.' }
+
+  await logAuditEvent({
+    actorProfileId: profile.id,
+    actorUserId:    user.id,
+    actorRole:      'super_admin',
+    action:         'appointment.cancelled',
+    entityType:     'appointment',
+    entityId:       appointmentId,
+    metadata: {
+      driving_school_id: current?.driving_school_id,
+      student_id:        current?.student_id,
+      previous_status:   current?.status ?? 'unknown',
+      new_status:        'cancelled',
+    },
+  })
 
   return {}
 }
