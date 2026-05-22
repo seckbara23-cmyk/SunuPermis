@@ -25,9 +25,10 @@ export async function requestAppointment(
 
 export async function confirmAppointment(
   appointmentId: string,
-  scheduledAt: string
+  scheduledAt: string,
+  examLocation?: string
 ): Promise<{ error?: string }> {
-  const result = await approveAppointment(appointmentId, scheduledAt)
+  const result = await approveAppointment(appointmentId, scheduledAt, examLocation)
   if (!result.error) revalidateBoth()
   return result
 }

@@ -102,6 +102,7 @@ export default function AdminAppointmentsClient({
         <ConfirmAppointmentModal
           appointmentId={confirmTarget.id}
           currentScheduledAt={confirmTarget.scheduled_at}
+          currentExamLocation={confirmTarget.exam_location}
           onClose={() => setConfirmTarget(null)}
           onSuccess={() => { setConfirmTarget(null); router.refresh() }}
         />

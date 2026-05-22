@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import type { AppointmentWithDetails } from '@/types'
 import { AppointmentStatusBadge } from '@/components/ui/StatusBadge'
 
@@ -55,6 +56,7 @@ export default function AdminAppointmentTable({
             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Statut</th>
             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Demande</th>
             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Date RDV</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Réf. convocation</th>
             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
           </tr>
         </thead>
@@ -87,6 +89,27 @@ export default function AdminAppointmentTable({
                     ? <span className="font-medium text-green-700">{formatDateTime(apt.scheduled_at)}</span>
                     : <span className="text-gray-300">—</span>
                   }
+                </td>
+                <td className="px-5 py-4 text-sm whitespace-nowrap">
+                  {apt.status === 'confirmed' && apt.confirmation_reference ? (
+                    <div className="space-y-1">
+                      <span className="font-mono text-xs font-bold text-navy tracking-wide">
+                        {apt.confirmation_reference}
+                      </span>
+                      <div>
+                        <Link
+                          href={`/admin/reservations/${apt.id}/confirmation`}
+                          className="text-xs text-navy hover:underline"
+                        >
+                          Voir la convocation →
+                        </Link>
+                      </div>
+                    </div>
+                  ) : apt.status === 'confirmed' ? (
+                    <span className="text-xs text-gray-400 italic">En cours…</span>
+                  ) : (
+                    <span className="text-xs text-gray-300">Non générée</span>
+                  )}
                 </td>
                 <td className="px-5 py-4">
                   <RowActions

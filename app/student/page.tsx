@@ -206,14 +206,14 @@ export default async function StudentDashboard() {
       .limit(5),
     supabase
       .from('appointments')
-      .select('id, status, rejection_reason, scheduled_at, requested_at, approved_at, rejected_at, created_at')
+      .select('id, status, rejection_reason, scheduled_at, requested_at, approved_at, rejected_at, created_at, confirmation_reference, exam_location')
       .eq('student_id', student.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
   ])
 
-  type ApptSnap = Pick<Appointment, 'id' | 'status' | 'rejection_reason' | 'scheduled_at' | 'requested_at' | 'approved_at' | 'rejected_at' | 'created_at'>
+  type ApptSnap = Pick<Appointment, 'id' | 'status' | 'rejection_reason' | 'scheduled_at' | 'requested_at' | 'approved_at' | 'rejected_at' | 'created_at' | 'confirmation_reference' | 'exam_location'>
   const appointment = appointmentRaw as ApptSnap | null
 
   const hasMedicalDoc     = !!student.medical_document_url
@@ -371,6 +371,38 @@ export default async function StudentDashboard() {
                 <p className="text-sm font-semibold text-green-700 text-right min-w-0">
                   {dateTimestamp(appointment.scheduled_at)}
                 </p>
+              </div>
+            )}
+
+            {appointment.status === 'confirmed' && appointment.exam_location && (
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm text-gray-600 shrink-0">Lieu</p>
+                <p className="text-sm font-medium text-gray-900 text-right min-w-0">
+                  {appointment.exam_location}
+                </p>
+              </div>
+            )}
+
+            {appointment.status === 'confirmed' && appointment.confirmation_reference && (
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm text-gray-600 shrink-0">Référence</p>
+                <p className="text-sm font-mono font-bold text-navy text-right min-w-0">
+                  {appointment.confirmation_reference}
+                </p>
+              </div>
+            )}
+
+            {appointment.status === 'confirmed' && (
+              <div className="pt-1">
+                <Link
+                  href={`/student/appointments/${appointment.id}/confirmation`}
+                  className="inline-flex items-center gap-2 rounded-lg bg-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-navy/90 transition-colors w-full justify-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  Voir la convocation
+                </Link>
               </div>
             )}
 

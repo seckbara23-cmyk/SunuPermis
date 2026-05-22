@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import type { AppointmentWithStudent } from '@/types'
 import { AppointmentStatusBadge } from '@/components/ui/StatusBadge'
 
@@ -44,6 +45,7 @@ export default function AppointmentTable({ appointments }: Props) {
             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Statut</th>
             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Demande</th>
             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Date RDV</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Réf. convocation</th>
             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Remarque</th>
           </tr>
         </thead>
@@ -64,6 +66,29 @@ export default function AppointmentTable({ appointments }: Props) {
                   ? <span className="font-medium text-green-700">{formatDateTime(apt.scheduled_at)}</span>
                   : <span className="text-gray-300">—</span>
                 }
+              </td>
+              <td className="px-5 py-4 text-sm whitespace-nowrap">
+                {apt.status === 'confirmed' && apt.confirmation_reference ? (
+                  <div className="space-y-1">
+                    <span className="font-mono text-xs font-bold text-navy tracking-wide">
+                      {apt.confirmation_reference}
+                    </span>
+                    <div>
+                      <Link
+                        href={`/dashboard/appointments/${apt.id}/confirmation`}
+                        className="text-xs text-navy hover:underline"
+                      >
+                        Voir / Imprimer →
+                      </Link>
+                    </div>
+                  </div>
+                ) : apt.status === 'pending' ? (
+                  <span className="text-xs text-amber-600">En attente</span>
+                ) : apt.status === 'rejected' ? (
+                  <span className="text-xs text-red-500">Rejeté</span>
+                ) : (
+                  <span className="text-gray-300">—</span>
+                )}
               </td>
               <td className="px-5 py-4 text-sm text-gray-500 max-w-xs">
                 {apt.status === 'rejected' && apt.rejection_reason

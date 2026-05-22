@@ -9,6 +9,7 @@ const APPOINTMENT_SELECT_SCHOOL = `
   id, student_id, driving_school_id, requested_by, exam_session_id,
   scheduled_at, status, rejection_reason, confirmed_by, confirmed_at,
   requested_at, approved_at, approved_by, rejected_at, rejected_by,
+  confirmation_reference, exam_location,
   updated_at, created_at,
   students(full_name)
 ` as const
@@ -17,6 +18,7 @@ const APPOINTMENT_SELECT_ADMIN = `
   id, student_id, driving_school_id, requested_by, exam_session_id,
   scheduled_at, status, rejection_reason, confirmed_by, confirmed_at,
   requested_at, approved_at, approved_by, rejected_at, rejected_by,
+  confirmation_reference, exam_location,
   updated_at, created_at,
   students(full_name),
   driving_schools(name)
@@ -96,9 +98,18 @@ export async function createAppointmentRequest(
 
 // ── Mutation: approve appointment (super_admin) ────────────────────────────────
 
+// Generates a stable, deterministic reference from the appointment UUID.
+// Format: SP-YYYY-XXXXXX (year + first 6 hex chars of UUID, uppercase)
+function buildConfirmationReference(appointmentId: string): string {
+  const year = new Date().getFullYear()
+  const hex  = appointmentId.replace(/-/g, '').slice(0, 6).toUpperCase()
+  return `SP-${year}-${hex}`
+}
+
 export async function approveAppointment(
   appointmentId: string,
-  scheduledAt: string
+  scheduledAt: string,
+  examLocation?: string
 ): Promise<{ error?: string }> {
   if (!scheduledAt) return { error: 'La date du rendez-vous est obligatoire.' }
 
@@ -115,28 +126,33 @@ export async function approveAppointment(
 
   if (!profile || profile.role !== 'super_admin') return { error: 'Accès refusé.' }
 
-  // Fetch current state for audit metadata
+  // Fetch current state for audit metadata + existing reference
   const { data: current } = await supabase
     .from('appointments')
-    .select('status, student_id, driving_school_id')
+    .select('status, student_id, driving_school_id, confirmation_reference')
     .eq('id', appointmentId)
     .single()
 
   const previousStatus = current?.status ?? 'unknown'
+  // Keep existing reference stable on re-approval; generate if missing
+  const confirmationReference =
+    current?.confirmation_reference ?? buildConfirmationReference(appointmentId)
   const now = new Date().toISOString()
 
   const { data: updated, error } = await supabase
     .from('appointments')
     .update({
-      status:           'confirmed',
-      scheduled_at:     scheduledAt,
-      confirmed_by:     profile.id,
-      confirmed_at:     now,
-      approved_at:      now,
-      approved_by:      profile.id,
-      rejection_reason: null,
-      rejected_at:      null,
-      rejected_by:      null,
+      status:                 'confirmed',
+      scheduled_at:           scheduledAt,
+      confirmed_by:           profile.id,
+      confirmed_at:           now,
+      approved_at:            now,
+      approved_by:            profile.id,
+      rejection_reason:       null,
+      rejected_at:            null,
+      rejected_by:            null,
+      confirmation_reference: confirmationReference,
+      exam_location:          examLocation?.trim() || null,
     })
     .eq('id', appointmentId)
     .select('id')
@@ -153,11 +169,12 @@ export async function approveAppointment(
     entityType:     'appointment',
     entityId:       appointmentId,
     metadata: {
-      driving_school_id: current?.driving_school_id,
-      student_id:        current?.student_id,
-      previous_status:   previousStatus,
-      new_status:        'confirmed',
-      scheduled_at:      scheduledAt,
+      driving_school_id:      current?.driving_school_id,
+      student_id:             current?.student_id,
+      previous_status:        previousStatus,
+      new_status:             'confirmed',
+      scheduled_at:           scheduledAt,
+      confirmation_reference: confirmationReference,
     },
   })
 
@@ -174,11 +191,13 @@ export async function approveAppointment(
       const s = (Array.isArray(raw) ? raw[0] : raw) as { full_name: string; email: string; phone: string | null } | null
       if (s?.email) {
         await notifyAppointmentConfirmed({
-          studentEmail: s.email,
-          studentPhone: s.phone,
-          studentName:  s.full_name,
-          schoolName:   '',
-          scheduledAt:  appt.scheduled_at ?? scheduledAt,
+          studentEmail:          s.email,
+          studentPhone:          s.phone,
+          studentName:           s.full_name,
+          schoolName:            '',
+          scheduledAt:           appt.scheduled_at ?? scheduledAt,
+          confirmationReference,
+          examLocation:          examLocation?.trim() || undefined,
         })
       }
     }
@@ -381,4 +400,36 @@ export async function getEligibleStudents(
     .order('full_name')
   if (error) throw new Error(error.message)
   return data ?? []
+}
+
+// ── Convocation data (all roles, RLS enforced) ─────────────────────────────────
+
+export interface AppointmentConfirmationData {
+  id: string
+  status: string
+  scheduled_at: string | null
+  exam_location: string | null
+  confirmation_reference: string | null
+  confirmed_at: string | null
+  driving_school_id: string
+  students: { full_name: string; license_category: string }
+  driving_schools: { name: string }
+}
+
+export async function getAppointmentConfirmation(
+  appointmentId: string
+): Promise<AppointmentConfirmationData | null> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('appointments')
+    .select(`
+      id, status, scheduled_at, exam_location, confirmation_reference,
+      confirmed_at, driving_school_id,
+      students(full_name, license_category),
+      driving_schools(name)
+    `)
+    .eq('id', appointmentId)
+    .eq('status', 'confirmed')
+    .maybeSingle()
+  return data as unknown as AppointmentConfirmationData | null
 }

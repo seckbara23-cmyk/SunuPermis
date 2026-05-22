@@ -164,17 +164,23 @@ export async function notifyBookingRejected(params: {
 }
 
 export async function notifyAppointmentConfirmed(params: {
-  studentEmail:  string
-  studentPhone?: string | null
-  studentName:   string
-  schoolName:    string
-  scheduledAt:   string
+  studentEmail:          string
+  studentPhone?:         string | null
+  studentName:           string
+  schoolName:            string
+  scheduledAt:           string
+  confirmationReference?: string
+  examLocation?:         string
 }) {
   const dateLabel = new Date(params.scheduledAt).toLocaleString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
-  const msg = `Bonjour ${params.studentName}, votre rendez-vous d'examen a été validé pour le ${dateLabel}.`
+
+  let msg = `Bonjour ${params.studentName}, votre rendez-vous d'examen a été validé pour le ${dateLabel}.`
+  if (params.confirmationReference) msg += ` Référence de convocation : ${params.confirmationReference}.`
+  if (params.examLocation)          msg += ` Lieu : ${params.examLocation}.`
+  msg += ` Apportez une pièce d'identité et cette convocation le jour de l'examen.`
 
   await sendNotification({ recipientEmail: params.studentEmail, channel: 'email', type: 'appointment_confirmed', message: msg })
   if (params.studentPhone) {

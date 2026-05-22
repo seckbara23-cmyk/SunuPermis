@@ -11,6 +11,7 @@ function toDatetimeLocal(iso: string | null | undefined): string {
 interface Props {
   appointmentId: string
   currentScheduledAt?: string | null
+  currentExamLocation?: string | null
   onClose: () => void
   onSuccess: () => void
 }
@@ -18,12 +19,14 @@ interface Props {
 export default function ConfirmAppointmentModal({
   appointmentId,
   currentScheduledAt,
+  currentExamLocation,
   onClose,
   onSuccess,
 }: Props) {
-  const [scheduledAt, setScheduledAt] = useState(toDatetimeLocal(currentScheduledAt))
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [scheduledAt, setScheduledAt]   = useState(toDatetimeLocal(currentScheduledAt))
+  const [examLocation, setExamLocation] = useState(currentExamLocation ?? '')
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState<string | null>(null)
   const isEdit = !!currentScheduledAt
 
   useEffect(() => {
@@ -43,7 +46,11 @@ export default function ConfirmAppointmentModal({
     setLoading(true)
     setError(null)
 
-    const result = await confirmAppointment(appointmentId, scheduledAt)
+    const result = await confirmAppointment(
+      appointmentId,
+      scheduledAt,
+      examLocation.trim() || undefined
+    )
 
     if (result.error) {
       setError(result.error)
@@ -62,7 +69,7 @@ export default function ConfirmAppointmentModal({
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl">
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900">
-            {isEdit ? 'Modifier la date' : 'Confirmer le rendez-vous'}
+            {isEdit ? 'Modifier le rendez-vous' : 'Confirmer le rendez-vous'}
           </h2>
           <button
             onClick={onClose}
@@ -90,6 +97,21 @@ export default function ConfirmAppointmentModal({
               required
               value={scheduledAt}
               onChange={(e) => setScheduledAt(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="exam_location" className="block text-sm font-medium text-gray-700 mb-1">
+              Lieu de l&apos;examen
+              <span className="ml-1 text-xs font-normal text-gray-400">(optionnel)</span>
+            </label>
+            <input
+              id="exam_location"
+              type="text"
+              placeholder="Ex : Centre d'examen de Dakar"
+              value={examLocation}
+              onChange={(e) => setExamLocation(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
             />
           </div>

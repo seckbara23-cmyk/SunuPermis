@@ -113,6 +113,9 @@ export interface Appointment {
   approved_by: string | null
   rejected_at: string | null
   rejected_by: string | null
+  // Confirmation fields added in migration 012
+  confirmation_reference: string | null
+  exam_location: string | null
   updated_at: string
   created_at: string
 }
