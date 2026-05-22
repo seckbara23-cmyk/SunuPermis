@@ -2,13 +2,16 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { logAuditEvent } from '@/lib/audit'
-import type { Student, TrainingStatus, Appointment } from '@/types'
+import { getStudentProgress } from '@/services/student-progress'
+import { PASS_THRESHOLD } from '@/lib/exam/categories'
+import type { Student, TrainingStatus } from '@/types'
+import type { StudentProgressAppointment } from '@/services/student-progress'
 
 // ── Effective status badge ─────────────────────────────────────────────────────
 function getEffectiveStatus(
   trainingStatus: TrainingStatus,
   hasMedicalDoc: boolean,
-  appointment: Pick<Appointment, 'status'> | null
+  appointment: Pick<StudentProgressAppointment, 'status'> | null
 ): { label: string; className: string } {
   if (trainingStatus === 'inactive')
     return { label: 'Inactif', className: 'bg-red-100 text-red-700' }
@@ -44,13 +47,55 @@ interface NextStep {
   urgent?: boolean
 }
 
+// Priority order: appointment status > medical doc > training status.
+// This avoids hiding confirmed/pending/rejected appointment info behind
+// lower-priority steps (medical doc, training not finished).
 function getNextStep(params: {
   hasMedicalDoc: boolean
   trainingStatus: TrainingStatus
-  appointment: Pick<Appointment, 'status' | 'rejection_reason'> | null
+  appointment: Pick<StudentProgressAppointment, 'status' | 'rejectionReason'> | null
   hasPassedMockExam: boolean
 }): NextStep {
   const { hasMedicalDoc, trainingStatus, appointment, hasPassedMockExam } = params
+
+  if (appointment?.status === 'confirmed') {
+    if (!hasPassedMockExam) {
+      return {
+        title: "Préparez-vous avec un examen blanc",
+        description: `Votre rendez-vous est confirmé. Passez un examen blanc (score requis : ${PASS_THRESHOLD}%) pour vous entraîner avant le grand jour.`,
+        link: { href: '/student/exams', label: "Commencer l'examen blanc" },
+      }
+    }
+    return {
+      title: "Vous êtes prêt pour l'examen !",
+      description: "Votre rendez-vous est confirmé et vous avez réussi un examen blanc. Bonne chance !",
+    }
+  }
+
+  if (appointment?.status === 'rejected') {
+    return {
+      title: "Demande rejetée — contactez votre auto-école",
+      description: appointment.rejectionReason
+        ? `Motif : ${appointment.rejectionReason}`
+        : "Votre demande a été rejetée. Contactez votre auto-école pour plus d'informations.",
+      urgent: true,
+    }
+  }
+
+  if (appointment?.status === 'cancelled') {
+    return {
+      title: "Rendez-vous annulé",
+      description: "Votre rendez-vous a été annulé. Contactez votre auto-école pour soumettre une nouvelle demande.",
+      urgent: true,
+    }
+  }
+
+  if (appointment?.status === 'pending') {
+    return {
+      title: "Demande en cours de traitement",
+      description: "Votre demande de rendez-vous a été soumise. L'administration gouvernementale l'examine actuellement.",
+    }
+  }
 
   if (!hasMedicalDoc) {
     return {
@@ -67,55 +112,9 @@ function getNextStep(params: {
     }
   }
 
-  if (!appointment) {
-    return {
-      title: "En attente de votre auto-école",
-      description: "Votre formation est terminée. Votre auto-école va soumettre votre demande de rendez-vous d'examen.",
-    }
-  }
-
-  if (appointment.status === 'pending') {
-    return {
-      title: "Demande en cours de traitement",
-      description: "Votre demande de rendez-vous a été soumise. L'administration gouvernementale l'examine actuellement.",
-    }
-  }
-
-  if (appointment.status === 'rejected') {
-    return {
-      title: "Demande rejetée — contactez votre auto-école",
-      description: appointment.rejection_reason
-        ? `Motif : ${appointment.rejection_reason}`
-        : "Votre demande a été rejetée. Contactez votre auto-école pour plus d'informations.",
-      urgent: true,
-    }
-  }
-
-  if (appointment.status === 'cancelled') {
-    return {
-      title: "Rendez-vous annulé",
-      description: "Votre rendez-vous a été annulé. Contactez votre auto-école pour soumettre une nouvelle demande.",
-      urgent: true,
-    }
-  }
-
-  if (appointment.status === 'confirmed') {
-    if (!hasPassedMockExam) {
-      return {
-        title: "Préparez-vous avec un examen blanc",
-        description: "Votre rendez-vous est confirmé. Passez un examen blanc pour vous entraîner avant le grand jour.",
-        link: { href: '/student/exams', label: "Commencer l'examen blanc" },
-      }
-    }
-    return {
-      title: "Vous êtes prêt pour l'examen !",
-      description: "Votre rendez-vous est confirmé et vous avez réussi un examen blanc. Bonne chance !",
-    }
-  }
-
   return {
-    title: "Dossier en cours",
-    description: "Votre dossier est en cours de traitement.",
+    title: "En attente de votre auto-école",
+    description: "Votre formation est terminée. Votre auto-école va soumettre votre demande de rendez-vous d'examen.",
   }
 }
 
@@ -137,7 +136,7 @@ function ChecklistItem({ done, label }: { done: boolean; label: string }) {
   )
 }
 
-// ── Appointment status badge ───────────────────────────────────────────────────
+// ── Appointment status badge map ───────────────────────────────────────────────
 const APPT_STATUS: Record<string, { label: string; className: string }> = {
   pending:   { label: 'En attente de validation', className: 'bg-amber-100 text-amber-700' },
   confirmed: { label: 'Rendez-vous validé',       className: 'bg-green-100 text-green-700' },
@@ -197,40 +196,25 @@ export default async function StudentDashboard() {
     }
   }
 
-  const [{ data: pastExams }, { data: appointmentRaw }] = await Promise.all([
-    supabase
-      .from('mock_exams')
-      .select('score, total_questions, passed, created_at')
-      .eq('student_id', student.id)
-      .order('created_at', { ascending: false })
-      .limit(5),
-    supabase
-      .from('appointments')
-      .select('id, status, rejection_reason, scheduled_at, requested_at, approved_at, rejected_at, created_at, confirmation_reference, exam_location')
-      .eq('student_id', student.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ])
+  const progress = await getStudentProgress(student.id)
+  const { appointment, mockExams } = progress
 
-  type ApptSnap = Pick<Appointment, 'id' | 'status' | 'rejection_reason' | 'scheduled_at' | 'requested_at' | 'approved_at' | 'rejected_at' | 'created_at' | 'confirmation_reference' | 'exam_location'>
-  const appointment = appointmentRaw as ApptSnap | null
-
-  const hasMedicalDoc     = !!student.medical_document_url
-  const hasPassedMockExam = (pastExams ?? []).some((e) => e.passed)
-  const bestScore = pastExams && pastExams.length > 0
-    ? Math.max(...pastExams.map((e) => e.score))
-    : null
+  const hasMedicalDoc = !!student.medical_document_url
 
   const effectiveBadge = getEffectiveStatus(student.training_status, hasMedicalDoc, appointment)
   const nextStep = getNextStep({
     hasMedicalDoc,
     trainingStatus: student.training_status,
     appointment,
-    hasPassedMockExam,
+    hasPassedMockExam: progress.mockExamPassed,
   })
 
-  const dateTimestamp = (iso: string | null | undefined) =>
+  const formatDate = (iso: string | null | undefined) =>
+    iso ? new Date(iso).toLocaleDateString('fr-FR', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    }) : null
+
+  const formatDateTime = (iso: string | null | undefined) =>
     iso ? new Date(iso).toLocaleString('fr-FR', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
@@ -315,11 +299,11 @@ export default async function StudentDashboard() {
           <h2 className="text-base font-semibold text-gray-900">Progression du dossier</h2>
         </div>
         <div className="px-6 py-4 space-y-3">
-          <ChecklistItem done={true}                                 label="Inscription élève créée" />
-          <ChecklistItem done={hasMedicalDoc}                        label="Document médical fourni" />
-          <ChecklistItem done={!!appointment}                        label="Demande de rendez-vous envoyée" />
-          <ChecklistItem done={appointment?.status === 'confirmed'}  label="Rendez-vous validé par l'administration" />
-          <ChecklistItem done={hasPassedMockExam}                    label="Examen blanc réussi" />
+          <ChecklistItem done={true}                          label="Inscription élève créée" />
+          <ChecklistItem done={hasMedicalDoc}                 label="Document médical fourni" />
+          <ChecklistItem done={progress.appointmentRequested} label="Demande de rendez-vous envoyée" />
+          <ChecklistItem done={progress.appointmentApproved}  label="Rendez-vous validé par l'administration" />
+          <ChecklistItem done={progress.mockExamPassed}       label={`Examen blanc réussi (≥ ${PASS_THRESHOLD}%)`} />
         </div>
       </div>
 
@@ -348,46 +332,42 @@ export default async function StudentDashboard() {
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm text-gray-600 shrink-0">Demande soumise le</p>
               <p className="text-sm font-medium text-gray-900 text-right min-w-0">
-                {new Date(appointment.requested_at ?? appointment.created_at).toLocaleDateString('fr-FR', {
-                  day: 'numeric', month: 'long', year: 'numeric',
-                })}
+                {formatDate(appointment.requestedAt ?? appointment.createdAt)}
               </p>
             </div>
 
-            {appointment.status === 'confirmed' && appointment.approved_at && (
+            {appointment.status === 'confirmed' && appointment.approvedAt && (
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm text-gray-600 shrink-0">Validé le</p>
                 <p className="text-sm font-medium text-green-700 text-right min-w-0">
-                  {new Date(appointment.approved_at).toLocaleDateString('fr-FR', {
-                    day: 'numeric', month: 'long', year: 'numeric',
-                  })}
+                  {formatDate(appointment.approvedAt)}
                 </p>
               </div>
             )}
 
-            {appointment.status === 'confirmed' && appointment.scheduled_at && (
+            {appointment.status === 'confirmed' && appointment.examDate && (
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm text-gray-600 shrink-0">Date du rendez-vous</p>
                 <p className="text-sm font-semibold text-green-700 text-right min-w-0">
-                  {dateTimestamp(appointment.scheduled_at)}
+                  {formatDateTime(appointment.examDate)}
                 </p>
               </div>
             )}
 
-            {appointment.status === 'confirmed' && appointment.exam_location && (
+            {appointment.status === 'confirmed' && appointment.examLocation && (
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm text-gray-600 shrink-0">Lieu</p>
                 <p className="text-sm font-medium text-gray-900 text-right min-w-0">
-                  {appointment.exam_location}
+                  {appointment.examLocation}
                 </p>
               </div>
             )}
 
-            {appointment.status === 'confirmed' && appointment.confirmation_reference && (
+            {appointment.status === 'confirmed' && appointment.confirmationReference && (
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm text-gray-600 shrink-0">Référence</p>
                 <p className="text-sm font-mono font-bold text-navy text-right min-w-0">
-                  {appointment.confirmation_reference}
+                  {appointment.confirmationReference}
                 </p>
               </div>
             )}
@@ -406,21 +386,19 @@ export default async function StudentDashboard() {
               </div>
             )}
 
-            {appointment.status === 'rejected' && appointment.rejected_at && (
+            {appointment.status === 'rejected' && appointment.rejectedAt && (
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm text-gray-600 shrink-0">Rejeté le</p>
                 <p className="text-sm text-red-600 text-right min-w-0">
-                  {new Date(appointment.rejected_at).toLocaleDateString('fr-FR', {
-                    day: 'numeric', month: 'long', year: 'numeric',
-                  })}
+                  {formatDate(appointment.rejectedAt)}
                 </p>
               </div>
             )}
 
-            {appointment.status === 'rejected' && appointment.rejection_reason && (
+            {appointment.status === 'rejected' && appointment.rejectionReason && (
               <div className="rounded-lg bg-red-50 border border-red-100 px-4 py-3 mt-2">
                 <p className="text-xs font-medium text-red-700 mb-1">Motif du rejet</p>
-                <p className="text-sm text-red-600">{appointment.rejection_reason}</p>
+                <p className="text-sm text-red-600">{appointment.rejectionReason}</p>
               </div>
             )}
 
@@ -441,7 +419,7 @@ export default async function StudentDashboard() {
             Passer un examen →
           </Link>
         </div>
-        {!pastExams || pastExams.length === 0 ? (
+        {mockExams.count === 0 ? (
           <div className="px-6 py-8 text-center">
             <p className="text-sm text-gray-400">Aucun examen blanc passé.</p>
             <Link href="/student/exams"
@@ -454,17 +432,17 @@ export default async function StudentDashboard() {
             <div className="flex gap-6 mb-4">
               <div>
                 <p className="text-xs text-gray-500">Examens passés</p>
-                <p className="text-2xl font-bold text-gray-900">{pastExams.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{mockExams.count}</p>
               </div>
-              {bestScore !== null && (
+              {mockExams.bestScore !== null && (
                 <div>
                   <p className="text-xs text-gray-500">Meilleur score</p>
-                  <p className="text-2xl font-bold text-gray-900">{bestScore}%</p>
+                  <p className="text-2xl font-bold text-gray-900">{mockExams.bestScore}%</p>
                 </div>
               )}
             </div>
             <div className="space-y-2">
-              {pastExams.slice(0, 3).map((e, i) => (
+              {mockExams.recent.slice(0, 3).map((e, i) => (
                 <div key={i} className="flex items-center justify-between text-sm">
                   <span className="text-gray-500">
                     {new Date(e.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
