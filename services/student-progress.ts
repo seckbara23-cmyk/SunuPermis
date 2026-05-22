@@ -19,6 +19,7 @@ export interface StudentProgressAppointment {
 export interface StudentProgressBooking {
   id: string
   status: BookingStatus
+  confirmationReference: string   // deterministic: BK-YYYY-XXXXXX
   examDate: string | null
   examLocation: string | null
   approvedAt: string | null
@@ -97,14 +98,19 @@ export async function getStudentProgress(studentId: string): Promise<StudentProg
   }
   const bk = bookingRaw as BookingRaw | null
   const booking: StudentProgressBooking | null = bk
-    ? {
-        id:          bk.id,
-        status:      bk.status as BookingStatus,
-        examDate:    bk.exam_sessions?.exam_date ?? null,
-        examLocation: bk.exam_sessions?.exam_center ?? null,
-        approvedAt:  bk.approved_at ?? null,
-        createdAt:   bk.created_at,
-      }
+    ? (() => {
+        const year = new Date(bk.approved_at ?? bk.created_at).getFullYear()
+        const hex  = bk.id.replace(/-/g, '').slice(0, 6).toUpperCase()
+        return {
+          id:                    bk.id,
+          status:                bk.status as BookingStatus,
+          confirmationReference: `BK-${year}-${hex}`,
+          examDate:              bk.exam_sessions?.exam_date ?? null,
+          examLocation:          bk.exam_sessions?.exam_center ?? null,
+          approvedAt:            bk.approved_at ?? null,
+          createdAt:             bk.created_at,
+        }
+      })()
     : null
 
   const isApproved = appointment?.status === 'confirmed' || booking?.status === 'approved'
