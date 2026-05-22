@@ -148,7 +148,7 @@ export default async function LearningPage() {
           {/* Weak areas */}
           {weakCategories.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h2 className="text-sm font-semibold text-gray-700 mb-1">Points à améliorer</h2>
+              <h2 className="text-sm font-semibold text-gray-700 mb-1">Catégories à renforcer</h2>
               <p className="text-xs text-gray-400 mb-4">Catégories en dessous de {PASS_THRESHOLD}%</p>
               <div className="space-y-3">
                 {weakCategories.map(({ cat, pct, correct, total }) => (

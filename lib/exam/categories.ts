@@ -6,6 +6,10 @@ export const EXAM_CATEGORIES = [
   'Infractions',
   'Conduite pratique',
   'Mécanique de base',
+  'Piétons et motos',
+  'Stationnement',
+  'Conduite de nuit',
+  'Urgences',
 ] as const
 
 export type ExamCategory = typeof EXAM_CATEGORIES[number]
@@ -18,6 +22,10 @@ export const CATEGORY_ICONS: Record<string, string> = {
   'Infractions':        '⛔',
   'Conduite pratique':  '🚗',
   'Mécanique de base':  '🔧',
+  'Piétons et motos':   '🏍️',
+  'Stationnement':      '🅿️',
+  'Conduite de nuit':   '🌙',
+  'Urgences':           '🚨',
 }
 
 export const EXAM_DURATION_SECONDS = 20 * 60  // 20 minutes

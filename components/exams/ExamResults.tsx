@@ -122,6 +122,11 @@ export default function ExamResults({ result, onRetry }: Props) {
                 </div>
 
                 <div className="ml-9 space-y-1 text-xs">
+                  {'category' in a && a.category && (
+                    <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-600 px-2 py-0.5 text-xs font-medium mb-1">
+                      {CATEGORY_ICONS[a.category as string] ?? '📋'} {a.category as string}
+                    </span>
+                  )}
                   {!a.isCorrect && (
                     <p className="text-red-700">
                       ✗ Votre réponse : <span className="font-medium">{a.selectedAnswer || '(sans réponse)'}</span>
@@ -131,7 +136,10 @@ export default function ExamResults({ result, onRetry }: Props) {
                     ✓ Bonne réponse : <span className="font-medium">{a.correctAnswer}</span>
                   </p>
                   {a.explanation && (
-                    <p className="text-gray-600 mt-1">{a.explanation}</p>
+                    <div className="mt-2 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
+                      <p className="text-xs font-semibold text-blue-700 mb-0.5">Explication</p>
+                      <p className="text-xs text-blue-800">{a.explanation}</p>
+                    </div>
                   )}
                   {a.learningTip && (
                     <p className="text-gray-500 italic mt-1">💡 {a.learningTip}</p>
