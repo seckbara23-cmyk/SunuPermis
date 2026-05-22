@@ -35,6 +35,24 @@ export async function approveBooking(bookingId: string): Promise<{ error?: strin
     .eq('id', bookingId)
     .single()
 
+  // Prevent approving a second active booking for the same student.
+  // "Active" = approved with no result recorded yet.
+  if (booking) {
+    const bkTyped = booking as unknown as { student_id: string }
+    const { data: existing } = await supabase
+      .from('exam_bookings')
+      .select('id')
+      .eq('student_id', bkTyped.student_id)
+      .eq('status', 'approved')
+      .is('result', null)
+      .neq('id', bookingId)
+      .limit(1)
+      .maybeSingle()
+    if (existing) {
+      return { error: "Cet élève a déjà une réservation active approuvée. Rejetez-la avant d'en approuver une nouvelle." }
+    }
+  }
+
   const { error: dbErr } = await supabase
     .from('exam_bookings')
     .update({ status: 'approved', approved_at: new Date().toISOString(), updated_at: new Date().toISOString() })
@@ -78,6 +96,7 @@ export async function approveBooking(bookingId: string): Promise<{ error?: strin
 
   revalidatePath('/admin/exam-bookings')
   revalidatePath('/dashboard/exams')
+  revalidatePath('/student', 'layout')
   return {}
 }
 
@@ -139,5 +158,6 @@ export async function rejectBooking(
 
   revalidatePath('/admin/exam-bookings')
   revalidatePath('/dashboard/exams')
+  revalidatePath('/student', 'layout')
   return {}
 }

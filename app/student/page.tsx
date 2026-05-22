@@ -5,13 +5,14 @@ import { logAuditEvent } from '@/lib/audit'
 import { getStudentProgress } from '@/services/student-progress'
 import { PASS_THRESHOLD } from '@/lib/exam/categories'
 import type { Student, TrainingStatus } from '@/types'
-import type { StudentProgressAppointment } from '@/services/student-progress'
+import type { StudentProgressAppointment, StudentProgressBooking } from '@/services/student-progress'
 
 // ── Effective status badge ─────────────────────────────────────────────────────
 function getEffectiveStatus(
   trainingStatus: TrainingStatus,
   hasMedicalDoc: boolean,
-  appointment: Pick<StudentProgressAppointment, 'status'> | null
+  appointment: Pick<StudentProgressAppointment, 'status'> | null,
+  booking: Pick<StudentProgressBooking, 'status'> | null,
 ): { label: string; className: string } {
   if (trainingStatus === 'inactive')
     return { label: 'Inactif', className: 'bg-red-100 text-red-700' }
@@ -25,18 +26,22 @@ function getEffectiveStatus(
   // ready_for_exam — gate on additional conditions
   if (!hasMedicalDoc)
     return { label: 'Document médical requis', className: 'bg-orange-100 text-orange-700' }
-  if (!appointment)
-    return { label: 'Dossier en cours', className: 'bg-amber-100 text-amber-700' }
-  if (appointment.status === 'pending')
-    return { label: 'En attente de validation', className: 'bg-amber-100 text-amber-700' }
-  if (appointment.status === 'confirmed')
-    return { label: 'Rendez-vous confirmé', className: 'bg-green-100 text-green-700' }
-  if (appointment.status === 'rejected')
-    return { label: 'Demande rejetée', className: 'bg-red-100 text-red-700' }
-  if (appointment.status === 'cancelled')
-    return { label: 'Rendez-vous annulé', className: 'bg-gray-100 text-gray-500' }
 
-  return { label: "Prêt pour l'examen", className: 'bg-amber-100 text-amber-700' }
+  const apptStatus = appointment?.status
+  const bkStatus   = booking?.status
+
+  if (apptStatus === 'confirmed' || bkStatus === 'approved')
+    return { label: 'Rendez-vous confirmé', className: 'bg-green-100 text-green-700' }
+  if (apptStatus === 'pending' || bkStatus === 'pending')
+    return { label: 'En attente de validation', className: 'bg-amber-100 text-amber-700' }
+  if (apptStatus === 'rejected' || bkStatus === 'rejected')
+    return { label: 'Demande rejetée', className: 'bg-red-100 text-red-700' }
+  if (apptStatus === 'cancelled')
+    return { label: 'Rendez-vous annulé', className: 'bg-gray-100 text-gray-500' }
+  if (appointment || booking)
+    return { label: 'Dossier en cours', className: 'bg-amber-100 text-amber-700' }
+
+  return { label: 'Dossier en cours', className: 'bg-amber-100 text-amber-700' }
 }
 
 // ── Prochaine étape ─────────────────────────────────────────────────────────────
@@ -47,18 +52,23 @@ interface NextStep {
   urgent?: boolean
 }
 
-// Priority order: appointment status > medical doc > training status.
-// This avoids hiding confirmed/pending/rejected appointment info behind
-// lower-priority steps (medical doc, training not finished).
+// Priority order: appointment/booking status first, then medical doc, then training.
+// This ensures a student with a confirmed booking is never shown a lower-priority step.
 function getNextStep(params: {
   hasMedicalDoc: boolean
   trainingStatus: TrainingStatus
   appointment: Pick<StudentProgressAppointment, 'status' | 'rejectionReason'> | null
+  booking: Pick<StudentProgressBooking, 'status'> | null
   hasPassedMockExam: boolean
 }): NextStep {
-  const { hasMedicalDoc, trainingStatus, appointment, hasPassedMockExam } = params
+  const { hasMedicalDoc, trainingStatus, appointment, booking, hasPassedMockExam } = params
 
-  if (appointment?.status === 'confirmed') {
+  const isApproved  = appointment?.status === 'confirmed' || booking?.status === 'approved'
+  const isPending   = appointment?.status === 'pending'   || booking?.status === 'pending'
+  const isRejected  = appointment?.status === 'rejected'  || booking?.status === 'rejected'
+  const isCancelled = appointment?.status === 'cancelled'
+
+  if (isApproved) {
     if (!hasPassedMockExam) {
       return {
         title: "Préparez-vous avec un examen blanc",
@@ -72,17 +82,17 @@ function getNextStep(params: {
     }
   }
 
-  if (appointment?.status === 'rejected') {
+  if (isRejected) {
     return {
       title: "Demande rejetée — contactez votre auto-école",
-      description: appointment.rejectionReason
+      description: appointment?.rejectionReason
         ? `Motif : ${appointment.rejectionReason}`
         : "Votre demande a été rejetée. Contactez votre auto-école pour plus d'informations.",
       urgent: true,
     }
   }
 
-  if (appointment?.status === 'cancelled') {
+  if (isCancelled) {
     return {
       title: "Rendez-vous annulé",
       description: "Votre rendez-vous a été annulé. Contactez votre auto-école pour soumettre une nouvelle demande.",
@@ -90,10 +100,10 @@ function getNextStep(params: {
     }
   }
 
-  if (appointment?.status === 'pending') {
+  if (isPending) {
     return {
       title: "Demande en cours de traitement",
-      description: "Votre demande de rendez-vous a été soumise. L'administration gouvernementale l'examine actuellement.",
+      description: "Votre demande a été soumise. L'administration gouvernementale l'examine actuellement.",
     }
   }
 
@@ -136,12 +146,18 @@ function ChecklistItem({ done, label }: { done: boolean; label: string }) {
   )
 }
 
-// ── Appointment status badge map ───────────────────────────────────────────────
+// ── Status badge maps ──────────────────────────────────────────────────────────
 const APPT_STATUS: Record<string, { label: string; className: string }> = {
   pending:   { label: 'En attente de validation', className: 'bg-amber-100 text-amber-700' },
   confirmed: { label: 'Rendez-vous validé',       className: 'bg-green-100 text-green-700' },
   rejected:  { label: 'Rejeté',                   className: 'bg-red-100 text-red-700' },
   cancelled: { label: 'Annulé',                   className: 'bg-gray-100 text-gray-500' },
+}
+
+const BOOKING_STATUS: Record<string, { label: string; className: string }> = {
+  pending:  { label: 'Réservation en attente',  className: 'bg-amber-100 text-amber-700' },
+  approved: { label: 'Session confirmée',        className: 'bg-green-100 text-green-700' },
+  rejected: { label: 'Réservation rejetée',      className: 'bg-red-100 text-red-700' },
 }
 
 export default async function StudentDashboard() {
@@ -197,15 +213,16 @@ export default async function StudentDashboard() {
   }
 
   const progress = await getStudentProgress(student.id)
-  const { appointment, mockExams } = progress
+  const { appointment, booking, mockExams } = progress
 
   const hasMedicalDoc = !!student.medical_document_url
 
-  const effectiveBadge = getEffectiveStatus(student.training_status, hasMedicalDoc, appointment)
+  const effectiveBadge = getEffectiveStatus(student.training_status, hasMedicalDoc, appointment, booking)
   const nextStep = getNextStep({
     hasMedicalDoc,
     trainingStatus: student.training_status,
     appointment,
+    booking,
     hasPassedMockExam: progress.mockExamPassed,
   })
 
@@ -238,9 +255,7 @@ export default async function StudentDashboard() {
 
       {/* Prochaine étape */}
       <div className={`rounded-xl border shadow-sm overflow-hidden ${
-        nextStep.urgent
-          ? 'bg-amber-50 border-amber-200'
-          : 'bg-white border-gray-200'
+        nextStep.urgent ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200'
       }`}>
         <div className="px-6 py-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Prochaine étape</p>
@@ -307,20 +322,22 @@ export default async function StudentDashboard() {
         </div>
       </div>
 
-      {/* Appointment status */}
+      {/* Examen de conduite */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h2 className="text-base font-semibold text-gray-900">Examen de conduite</h2>
         </div>
 
-        {!appointment ? (
+        {!appointment && !booking ? (
           <div className="px-6 py-8 text-center">
             <p className="text-sm text-gray-400">Aucun rendez-vous demandé.</p>
             <p className="text-xs text-gray-300 mt-1">
               Votre auto-école soumettra une demande lorsque votre formation sera terminée.
             </p>
           </div>
-        ) : (
+
+        ) : appointment ? (
+          /* ── Appointment-based (formal government-approval workflow) ── */
           <div className="px-6 py-5 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm text-gray-600 shrink-0">Statut</p>
@@ -408,7 +425,78 @@ export default async function StudentDashboard() {
               </p>
             )}
           </div>
-        )}
+
+        ) : booking ? (
+          /* ── Booking-based (session reservation workflow) ── */
+          <div className="px-6 py-5 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-gray-600 shrink-0">Statut</p>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${BOOKING_STATUS[booking.status]?.className ?? 'bg-gray-100 text-gray-600'}`}>
+                {BOOKING_STATUS[booking.status]?.label ?? booking.status}
+              </span>
+            </div>
+
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm text-gray-600 shrink-0">Réservation soumise le</p>
+              <p className="text-sm font-medium text-gray-900 text-right min-w-0">
+                {formatDate(booking.createdAt)}
+              </p>
+            </div>
+
+            {booking.status === 'approved' && booking.approvedAt && (
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm text-gray-600 shrink-0">Approuvé le</p>
+                <p className="text-sm font-medium text-green-700 text-right min-w-0">
+                  {formatDate(booking.approvedAt)}
+                </p>
+              </div>
+            )}
+
+            {booking.status === 'approved' && booking.examDate && (
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm text-gray-600 shrink-0">Date de la session</p>
+                <p className="text-sm font-semibold text-green-700 text-right min-w-0">
+                  {formatDateTime(booking.examDate)}
+                </p>
+              </div>
+            )}
+
+            {booking.status === 'approved' && booking.examLocation && (
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm text-gray-600 shrink-0">Centre d&apos;examen</p>
+                <p className="text-sm font-medium text-gray-900 text-right min-w-0">
+                  {booking.examLocation}
+                </p>
+              </div>
+            )}
+
+            {booking.status === 'approved' && (
+              <div className="pt-1">
+                <Link
+                  href={`/student/bookings/${booking.id}/confirmation`}
+                  className="inline-flex items-center gap-2 rounded-lg bg-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-navy/90 transition-colors w-full justify-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  Voir la convocation
+                </Link>
+              </div>
+            )}
+
+            {booking.status === 'pending' && (
+              <p className="text-xs text-gray-400 italic">
+                Votre réservation est en cours d&apos;examen. Vous serez informé dès qu&apos;une décision est prise.
+              </p>
+            )}
+
+            {booking.status === 'rejected' && (
+              <p className="text-sm text-red-600">
+                Votre réservation a été rejetée. Contactez votre auto-école pour soumettre une nouvelle demande.
+              </p>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {/* Mock exam results */}
